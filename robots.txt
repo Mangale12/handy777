@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+Sitemap:https://noorgames.net/sitemap.xml
+Sitemap:https://noorgames.net/sitemap_1.xml

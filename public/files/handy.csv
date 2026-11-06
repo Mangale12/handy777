@@ -1,0 +1,3 @@
+date ,noor,wood,handy,duration,total duration 
+2023-11-01,create mail to referrer if any member load > 100 in a month ,-,-,8,8 hour 
+2023-11-02,"refer member load > 100 , >200 & >300 in a month insert in to log file, try send mail to referer",-,-,8,8 hour 

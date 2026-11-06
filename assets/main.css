@@ -1,0 +1,76 @@
+.bigbutton {
+    padding:10px;
+}
+
+body
+{
+    font-family: arial;
+    background:black;
+  
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-attachment: fixed;;
+}
+
+/* Do some css reset on selected elements */
+h1, p
+{
+    margin: 0;
+}
+
+
+/* Styles for the power selection controls */
+table.power
+{
+    background-color: #cccccc;
+    cursor: pointer;
+    border:1px solid #333333;
+}
+
+table.power th
+{
+    background-color: white;
+    cursor: default;
+}
+
+td.pw1
+{
+    background-color: #6fe8f0;
+}
+
+td.pw2
+{
+    background-color: #86ef6f;
+}
+
+#wheelContainer {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    box-shadow: 0 0 40px #000;
+    border-radius: 500px;
+}
+
+td.pw3
+{
+    background-color: #ef6f6f;
+}
+
+/* Style applied to the spin button once a power has been selected */
+.clickable
+{
+    cursor: pointer;
+}
+
+
+#dragonnn {
+    position:fixed;
+    top:350;
+    left:250;
+
+}

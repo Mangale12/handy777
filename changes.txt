@@ -1,0 +1,104 @@
+ALTER TABLE `forms` ADD `unsub_token` LONGTEXT NULL AFTER `id`;
+
+
+send mail to winner
+
+monthly history ma august ma click garda card ko title ma septemnber aauney
+gamers games page optimize
+unsubscribe (encrypted)
+bulk undo
+test video of bulk undo
+test video of subscribe
+mail sent to between wala users
+cronjob for between wala lai mail send
+redeem ma date select
+cronjob for above limit wala mail
+
+unsubscribe redo
+work on inactive page
+work on redeem history
+
+unsub mails log view
+device ip tracking
+
+
+CREATE TABLE `unsubmails` (
+  `id` bigint(20) NOT NULL,
+  `form_id` bigint(20) NOT NULL,
+  `full_name` varchar(200) NOT NULL,
+  `email` varchar(200) NOT NULL,
+  `days` int(11) NOT NULL,
+  `status` int(11) NOT NULL DEFAULT 1,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+//ALTER TABLE `histories` ADD INDEX(`created_at`);
+//ALTER TABLE `histories` ADD `search_item` INT NOT NULL DEFAULT '0' AFTER `created_by`;
+
+'id',
+'form_id',
+'full_name',
+'email',
+'days',
+'status',
+'created_at',
+'updated_at'
+
+
+//dashboard optimized
+//cronjob test and make work
+//data expert role ko naya user (Dataexpert4@noorgames.net,password same as admin)
+//data expert can only access dashboard, table, logout (404 on other pages)
+//redeem ma -> SN, status change
+//log files ko report herna pauna paryo (/logs)
+//sort redeem by redeem amount
+//dashboard ma auth
+
+
+ALTER TABLE `forms` ADD `redeem_status` BIGINT NULL AFTER `balance`;
+ALTER TABLE `forms` CHANGE `redeem_status` `redeem_status` VARCHAR(200) NULL DEFAULT NULL;
+
+
+RENAME TABLE `noor_v2`.`form_redeem_status` TO `noor_v2`.`form_redeem_statuses`;
+
+ALTER TABLE `form_redeem_statuses` ADD `deleted_at` DATETIME NULL AFTER `status`;
+
+
+
+ALTER TABLE `general_setting` ADD `spinner_winner_day` INT NULL AFTER `spinner_time`, ADD `spinner_time_cron` TIME NULL AFTER `spinner_winner_day`;
+
+past winner
+spinner ko congrats modal ma characters removed
+font change of spinner winner text
+spinner winner set cronjob // 
+new template in caandv //
+email send to user and admin //
+inactive players -> status change //
+inactive players -> save note //
+7 days ra 10 days garda less aairako xa // checked
+7 days wala mail pathako ho vanera tha huna paryo //
+players page ma edit ko modal ma text area too big //
+mail template ma fb ko logo matra //
+cronjob ma inactive 7 days wala lai pathauni mail //
+sabai inactive wala ko mail jani admin lai //
+login logs //
+redeem page cashier le ni herni //
+redeem ko page ma amount lai redeem amount banauni //
+mahina ma 2 choti chalney -- balance between 400-600 and below 600
+mail template ma noor games ko header
+redeem ma tyo month ko total load gareko amount ni dekhauni //
+redeem page ma -- october click garda january ma selected aairako xa //
+redeem page -- remove print options
+cashier cant see page -- spinner winner, unsub mails, log viewer, activity status, players page -- name and number
+profile page -- editable and update work
+profile page -- change password
+
+
+CREATE INDEX created_at_index ON histories (created_at);
+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
+
+ALTER TABLE `general_setting` ADD `inactive_mail_type` VARCHAR(200) NULL AFTER `spinner_time_cron`, ADD `inactive_mail_time` TIME NULL AFTER `inactive_mail_type`;
+ALTER TABLE `general_setting` ADD `inactive_mail_day` INT NOT NULL DEFAULT '1' AFTER `inactive_mail_time`;
+ALTER TABLE `general_setting` ADD `inactive_mail_message` TEXT NULL AFTER `inactive_mail_day`;
+

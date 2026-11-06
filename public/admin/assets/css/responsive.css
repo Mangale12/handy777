@@ -1,0 +1,63 @@
+                                @media (min-width: 1400px) {
+
+                                    .container,
+                                    .container-lg,
+                                    .container-md,
+                                    .container-sm,
+                                    .container-xl,
+                                    .container-xxl {
+                                        max-width: 1380px !important;
+                                    }
+                                }
+
+                                @media (max-width: 1024px) {
+                                    .grid-item img {
+                                        max-height: 260px;
+                                        min-height: 260px;
+                                    }
+                                }
+
+                                @media (max-width: 980px) {
+                                    #dashboard-wrapper .sidebar-content2 table {
+                                        width: 1080px !important;
+                                    }
+                                }
+
+                                @media (max-width: 768px) {
+                                    .grid-container {
+                                        grid-template-columns: auto auto auto;
+                                    }
+
+                                    .grid-item img {
+                                        max-height: 300px;
+                                        min-height: 300px;
+                                    }
+
+                                    .info {
+                                        text-align: center;
+                                    }
+
+                                    #dashboard-wrapper .sidebar-menu .logo {
+                                        width: 160px;
+                                    }
+                                }
+
+                                @media (max-width: 475px) {
+                                    .grid-container {
+                                        grid-template-columns: auto;
+                                    }
+
+                                    .grid-item img {
+                                        max-height: 470px;
+                                        min-height: 470px;
+                                    }
+                                }
+
+                                @media (max-width: 375px) {
+
+
+                                    .grid-item img {
+                                        max-height: 370px;
+                                        min-height: 370px;
+                                    }
+                                }

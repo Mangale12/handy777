@@ -1,0 +1,46 @@
+body {
+    font-family: Open Sans;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    overflow: hidden;
+    background: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
+        url('../img/back.jpg') no-repeat;
+    background-size: cover;
+    background-attachment: fixed;
+background-position: center;
+}
+.mainbox:after {
+    position: absolute;
+    content: "";
+    width: 100%;
+    height: 100%;
+    background: url('../img/arrow-bottom.png') no-repeat;
+    background-size: 5%;
+    left: 5%;
+    top: 48%;
+    transform: rotate(90deg);
+}
+.players-div{
+  position: absolute;
+  top: 100px;
+  left: 100px;
+  background: #999950;
+}
+.player-list-li{
+    border: 2px solid #343a40;
+    border-top-right-radius: 7px;
+    border-bottom-right-radius: 7px;
+
+}
+.card{
+    background: #ddd2b0;
+    border: 3px solid;
+    border-image: linear-gradient(45deg,red,blue) 10;
+}
+.card-header{
+    width: 220px;
+    border-bottom: 2px solid red;
+    border-image: linear-gradient(45deg,red,blue) 10;
+}

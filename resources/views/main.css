@@ -1,0 +1,50 @@
+.bigbutton {
+    padding:10px;
+}
+
+body
+{
+    font-family: arial;
+}
+
+/* Do some css reset on selected elements */
+h1, p
+{
+    margin: 0;
+}
+
+
+/* Styles for the power selection controls */
+table.power
+{
+    background-color: #cccccc;
+    cursor: pointer;
+    border:1px solid #333333;
+}
+
+table.power th
+{
+    background-color: white;
+    cursor: default;
+}
+
+td.pw1
+{
+    background-color: #6fe8f0;
+}
+
+td.pw2
+{
+    background-color: #86ef6f;
+}
+
+td.pw3
+{
+    background-color: #ef6f6f;
+}
+
+/* Style applied to the spin button once a power has been selected */
+.clickable
+{
+    cursor: pointer;
+}

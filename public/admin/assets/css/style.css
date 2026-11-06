@@ -1,0 +1,533 @@
+/* Global Css */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: "Red Hat Display", sans-serif;
+  /* background: #0F2027;
+            background: -webkit-linear-gradient(230deg, #2C5364, #203A43, #0F2027);
+            background: linear-gradient(230deg, #2C5364, #203A43, #0F2027); */
+  /* background: linear-gradient(230deg, #000142, #010004); */
+  /* background: linear-gradient(130deg, #474747, #005d81); */
+  background-image: linear-gradient(to left bottom,
+      #000000,
+      #3a2c39,
+      #5a5b7f,
+      #5597c9,
+      #00d9ff);
+  position: relative;
+  overflow: hidden;
+}
+
+ul {
+  list-style: none;
+  padding-left: 0;
+}
+
+ul li {
+  list-style: none;
+}
+
+a {
+  text-decoration: none;
+  cursor: pointer;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+a {
+  font-family: "Red Hat Display", sans-serif;
+}
+
+input:focus,
+textarea:focus,
+select:focus,
+button:focus {
+  outline: none;
+}
+
+.padding {
+  padding: 70px 0px;
+}
+
+:root {
+  --main-color: #007188;
+  --black: #007188;
+  --animationSpeed: 30s;
+}
+
+/* width */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+  background: rgb(255 255 255 / 10%);
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+  background: rgba(155, 155, 155, 0.171);
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+.navbar-toggler-icon:before {
+  content: "\f0c9";
+  color: rgb(255 255 255 / 50%);
+  font-family: "FontAwesome";
+  line-height: 1.5;
+  left: 0;
+}
+
+.navbar-toggler-icon {}
+
+.overlay {
+  opacity: 1;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.overlay2 {
+  opacity: 0.5;
+  height: 100vh;
+  overflow: hidden;
+}
+
+#leftsidebarfilter .modal-content {
+  background: transparent;
+  color: white;
+}
+
+#leftsidebarfilter .close {
+  color: white;
+}
+
+#leftsidebarfilter .modal-header {
+  border-bottom: 1px solid #575757;
+}
+
+#leftsidebarfilter .modal-dialog {
+  background-color: rgb(255 255 255 / 10%);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(20px);
+  position: fixed;
+  left: 0;
+  margin: auto;
+  width: 320px;
+  height: 100%;
+  -webkit-transform: translate3d(0%, 0, 0);
+  -ms-transform: translate3d(0%, 0, 0);
+  -o-transform: translate3d(0%, 0, 0);
+  transform: translate3d(0%, 0, 0);
+}
+
+#leftsidebarfilter.fade .modal-dialog {
+  left: -320px;
+  -webkit-transition: opacity 0.3s linear, left 0.3s ease-out;
+  -moz-transition: opacity 0.3s linear, left 0.3s ease-out;
+  -o-transition: opacity 0.3s linear, left 0.3s ease-out;
+  transition: opacity 0.3s linear, left 0.3s ease-out;
+}
+
+#leftsidebarfilter.fade.show .modal-dialog {
+  left: 0;
+}
+
+.btn-glass {
+  background-color: rgb(255 255 255 / 10%);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(20px);
+  border-radius: 5px;
+  padding: 10px 0;
+}
+
+.btn {
+  position: relative;
+  display: inline-block;
+  width: auto;
+  height: auto;
+  background-color: rgb(28, 31, 30);
+  border: none;
+  cursor: pointer;
+  border-radius: 0;
+}
+
+.btn span {
+  position: relative;
+  display: inline-block;
+  font-size: 14px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  top: 0;
+  left: 0;
+  width: 100%;
+  transition: 0.3s;
+}
+
+/*--- btn-1 ---*/
+.btn-1::before {
+  background-color: var(--main-color);
+  transition: 0.3s ease-out;
+  position: absolute;
+  content: "";
+}
+
+.btn-1 span {
+  transition: 0.2s 0.1s;
+}
+
+.btn-1 span:hover {
+  transition: 0.2s 0.1s;
+}
+
+/* 2.hover-filled-slide-up */
+.btn.hover-filled-slide-up::before {
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  width: 100%;
+  position: absolute;
+  content: "";
+}
+
+.btn.hover-filled-slide-up:hover::before {
+  height: 0%;
+  position: absolute;
+  content: "";
+}
+
+.form-control:focus {
+  background-color: transparent !important;
+  border-color: #e1e1e1;
+}
+
+#breadcrumbs {
+  background-color: var(--black);
+}
+
+#breadcrumbs h1 {
+  color: var(--black);
+}
+
+#breadcrumbs ul {
+  font-size: 13px;
+}
+
+/* Login Page */
+#login-register-wrapper {
+  height: 100vh;
+  display: flex;
+}
+
+#login-register-wrapper .logo img {
+  max-height: 4rem;
+  min-height: 4rem;
+  object-fit: contain;
+  object-position: center;
+}
+
+#login-register-wrapper .login-register-form h1 {
+  color: var(--main-color);
+  text-transform: uppercase;
+  font-size: 35px;
+}
+
+#login-register-wrapper i {
+  position: absolute;
+  right: 23px;
+  top: 30%;
+  color: var(--main-color);
+}
+
+#login-register-wrapper .social-media a {
+  color: white;
+  background-color: var(--main-color);
+  height: 30px;
+  width: 30px;
+  font-size: 15px;
+  border-radius: 4px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#login-register-wrapper .social-media a:hover {
+  background-color: var(--main-color);
+}
+
+#login-register-wrapper .login-register-form .image {
+  overflow: hidden;
+}
+
+#login-register-wrapper .login-register-form .form-wrapper input::placeholder {
+  color: rgb(0, 0, 0);
+}
+
+#login-register-wrapper .login-register-form .form-wrapper input {
+  color: rgb(0, 0, 0) !important;
+}
+
+#login-register-wrapper .login-register-form .form-wrapper {
+  border-radius: 8px;
+  /* background-color: rgb(255 255 255 / 63%); */
+  background-color: rgb(255 255 255 / 56%);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+  color: rgb(0, 0, 0);
+}
+
+#login-register-wrapper a {
+  color: var(--text-color);
+  text-decoration: none;
+}
+
+/* Login Page Ends */
+/* Navigation */
+#navigation-wrapper {
+  position: sticky;
+  top: 0%;
+  z-index: 5;
+  /* background: linear-gradient(130deg, #001c81, #004f6e) */
+}
+
+#navigation-wrapper .navbar {
+  background-color: rgb(109 122 127 / 26%);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  border-bottom-right-radius: 5px;
+  border-bottom-left-radius: 5px;
+  /* border-radius: 5px;
+            transform: translateY(12px); */
+}
+
+#navigation-wrapper .navbar .navbar-nav .nav-item2 a {
+  color: white;
+}
+
+#navigation-wrapper .navbar .dropdown-menu.show {
+  position: absolute;
+  transform: translateX(-30px);
+}
+
+/* Navigation Ends */
+/* Dashboard */
+.text-light {
+  color: rgb(204, 204, 204) !important;
+}
+
+.sidebar-menu {
+  background-color: rgb(255 255 255 / 10%);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(20px);
+  border-radius: 5px;
+  height: 85vh;
+  color: white;
+  position: sticky;
+  position: -webkit-sticky;
+  top: 7%;
+}
+
+#dashboard-wrapper .sidebar-content {
+  background-color: rgb(255 255 255 / 10%);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  border-radius: 5px;
+  color: white;
+  height: 100vh;
+  overflow-y: scroll;
+}
+
+.sidebar-menu ul li.active {
+  background-color: rgb(255 255 255 / 30%);
+}
+
+.sidebar-menu ul li {
+  border-radius: 5px;
+}
+
+.sidebar-menu ul li:hover {
+  background-color: rgb(255 255 255 / 10%);
+}
+
+.sidebar-menu ul li:first-child {
+  background-color: unset;
+}
+
+.sidebar-menu ul li.active:hover {
+  background-color: rgb(255 255 255 / 30%);
+}
+
+.sidebar-menu .logo {
+  max-height: 95px;
+  min-height: 95px;
+  width: 127px;
+  object-fit: cover;
+  object-position: center;
+  border-radius: 5px;
+}
+
+.sidebar-menu a {
+  text-decoration: none;
+  color: white;
+}
+
+.sidebar-menu .fa {
+  font-size: 17px;
+  height: 10px;
+  width: 10px;
+}
+
+#dashboard-wrapper .sidebar-content form .form-group input,
+form .form-group select,
+.form-control {
+  background-color: rgb(255 255 255 / 30%) !important;
+  border: 0;
+  outline: 0 !important;
+  outline-offset: unset !important;
+  color: white;
+}
+
+#dashboard-wrapper .form-control:focus {
+  color: #ffffff !important;
+}
+
+#dashboard-wrapper .sidebar-content form input::placeholder {
+  color: white;
+}
+
+/* Dashboard Ends */
+/* Animation */
+.box-area {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: -1;
+}
+
+.box-area li {
+  position: absolute;
+  display: block;
+  list-style: none;
+  width: 25px;
+  height: 25px;
+  bottom: -150px;
+  background: rgba(255, 255, 255, 0.2);
+  animation: animate var(--animationSpeed) infinite linear;
+}
+
+@keyframes animate {
+  0% {
+    transform: translateY(0px) rotate(0deg);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateY(-1200px) rotate(360deg);
+    opacity: 1;
+  }
+}
+
+.box-area li:nth-child(1) {
+  left: 86%;
+  width: 80px;
+  height: 80px;
+  animation-delay: 0s;
+}
+
+.box-area li:nth-child(2) {
+  left: 12%;
+  width: 30px;
+  height: 30px;
+  animation-delay: 1.5s;
+  animation-duration: 8s;
+}
+
+.box-area li:nth-child(3) {
+  left: 70%;
+  width: 100px;
+  height: 100px;
+  animation-delay: 5.5s;
+}
+
+.box-area li:nth-child(4) {
+  left: 42%;
+  width: 110px;
+  height: 110px;
+  animation-delay: 0s;
+  animation-duration: 15s;
+}
+
+.box-area li:nth-child(5) {
+  left: 65%;
+  width: 40px;
+  height: 40px;
+  animation-delay: 0.5s;
+  animation-duration: 8s;
+}
+
+.box-area li:nth-child(6) {
+  left: 15%;
+  width: 110px;
+  height: 110px;
+  animation-delay: 3.5s;
+  animation-duration: 15s;
+}
+
+/* Animation Ends*/
+/* Table */
+#dashboard-wrapper .sidebar-content2 table tr th,
+tr td {
+  padding: 10px 10px;
+  max-width: 50px;
+  min-width: 50px;
+  overflow: hidden;
+}
+
+#dashboard-wrapper .sidebar-content2 table tr td img {
+  max-height: 150px;
+  min-height: 150px;
+  object-fit: contain;
+  object-position: center;
+}
+
+/* Table Ends */
+/* Grid Card */
+.grid-container {
+  display: grid;
+  grid-template-columns: auto auto auto auto auto;
+  grid-row-gap: 20px;
+  grid-column-gap: 20px;
+  width: 100%;
+  place-items: center;
+  padding: 20px;
+}
+
+.grid-item {
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.grid-item img {
+  max-height: 350px;
+  min-height: 350px;
+  object-fit: cover;
+  object-position: center;
+}
+
+/* Grid Card Ends */

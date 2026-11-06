@@ -1,0 +1,169 @@
+
+<html>
+    <head>
+        <title>noor spinning wheel</title>
+        <link rel="stylesheet" href="main.css" type="text/css" />
+        <script type="text/javascript" src="./winwheel.js"></script>
+        <script src="./tweenmax.js"></script>
+    </head>
+    <body>
+ 
+            <table>
+                <tr>
+                        <td>
+                            <button id="bigButton" class="bigButton" onclick="calculatePrize(); this.disabled=true;">Spin the Wheel</button>
+                        </td>
+                    <td>
+                        <canvas id="canvas" width="600" height="600">
+                            
+                        </canvas>
+                    </td>
+                </tr>
+            </table>
+            <audio id="winsound">
+                <source src="./winbeat.mp3" />
+            </audio>
+        <script>
+
+            playerArray=[];
+
+            playerArray['player_info']=[
+                {   
+                    id:"1",
+                    name:"Prasil"
+                },
+                {  
+                    id:"2",
+                    name:"Gaurav"
+                },
+                {
+                    id:"3",
+                    name:"Prasun"
+                }
+            ]
+
+            playerArray['winner_info'] = [
+                {
+                    id:"2",
+                    name:"Prasil",
+                }
+            ]
+
+            //build array for segments for wheel
+            var segments = [];
+
+            playerArray['player_info'].forEach(element => {
+                console.log(element);
+                segments.push({
+                    fillStyle: "white",
+                    text: element.name
+                });
+            });
+
+            //get the array length of player_info
+            var player_info_length = playerArray['player_info'].length;
+
+            //get id from winner info and compare with player info
+            var winner_info_id = playerArray['winner_info'][0].id;
+            
+            //get the index of winner info id
+            var winner_info_index = playerArray['player_info'].findIndex(x => x.id == winner_info_id);
+            
+
+            // //convert the player array into a json string
+            // playerArray = JSON.stringify(playerArray);
+
+            // //convert the json string into an object
+            // playerArray = JSON.parse(playerArray);
+
+
+            //170 default radi
+
+             let theWheel = new Winwheel({
+        'numSegments'    : player_info_length,
+        'outerRadius'    : 270,
+        'segments'       : segments,
+        'animation' :
+        {
+            'type'          : 'spinToStop',
+            'duration'      : 30,
+            'spins'         : 20,
+            'callbackAfter' : 'drawTriangle()',
+            'callbackSound' : playSound,
+            'callbackFinished' : 'winAnimation()',
+        }
+    });
+
+    let audio = new Audio('tick.mp3');  // Create audio object and load desired file.
+
+    function winAnimation()
+    {
+        // // Get the audio with the sound it in, then play.
+        // let winsound = document.getElementById('winsound');
+        // winsound.play();
+ 
+        // Get the number of the winning segment.
+        let winningSegmentNumber = theWheel.getIndicatedSegmentNumber();
+ 
+        // Loop and set fillStyle of all segments to gray.
+        for (let x = 1; x < theWheel.segments.length; x ++) {
+            theWheel.segments[x].fillStyle = 'gray';
+        }
+ 
+        // Make the winning one yellow.
+        theWheel.segments[winningSegmentNumber].fillStyle = 'yellow';
+ 
+        // Call draw function to render changes.
+        theWheel.draw();
+ 
+        // Also re-draw the pointer, otherwise it disappears.
+        drawTriangle();
+    }
+ 
+ function playSound()
+ {
+     // Stop and rewind the sound (stops it if already playing).
+     audio.pause();
+     audio.currentTime = 0;
+
+     // Play the sound.
+     audio.play();
+ }
+ 
+    // Function with formula to work out stopAngle before spinning animation.
+    // Called from Click of the Spin button.
+    function calculatePrize(winner_info=winner_info_index)
+    {
+        console.log("Winner is"+winner_info);
+        // Get random angle inside specified segment of the wheel.
+        let stopAt = theWheel.getRandomForSegment(winner_info_index);
+
+        // Important thing is to set the stopAngle of the animation before stating the spin.
+        theWheel.animation.stopAngle = stopAt;
+
+        // Start the spin animation here.
+        theWheel.startAnimation();
+    }
+ 
+    // Usual pointer drawing code.
+    drawTriangle();
+ 
+    function drawTriangle()
+    {
+        // Get the canvas context the wheel uses.
+        let ctx = theWheel.ctx;
+ 
+        ctx.strokeStyle = 'navy';     // Set line colour.
+        ctx.fillStyle   = 'aqua';     // Set fill colour.
+        ctx.lineWidth   = 2;
+        ctx.beginPath();              // Begin path.
+        ctx.moveTo(290, 5);           // Move to initial position.
+        ctx.lineTo(290, 5);           // Draw lines to make the shape.
+        ctx.lineTo(300, 40);
+        ctx.lineTo(310, 5);
+        ctx.stroke();                 // Complete the path by stroking (draw lines).
+        ctx.fill();                   // Then fill.
+    }
+        </script>
+    </body>
+</html>

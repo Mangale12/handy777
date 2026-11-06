@@ -1,0 +1,35 @@
+<IfModule mod_rewrite.c>
+    <IfModule mod_negotiation.c>
+        # Prevent Apache MultiViews from mapping /chat/* to the legacy
+        # root-level chat.php file before Laravel receives the request.
+        Options -MultiViews -Indexes
+    </IfModule>
+
+    RewriteEngine On
+
+    # Keep bearer credentials available to Laravel's request object.
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # Chat URLs must never be resolved as the legacy chat.php or public/admin
+    # files. Send these application paths directly to Laravel first.
+    RewriteRule ^(?:chat(?:/.*)?|admin/chat(?:/.*)?)$ index.php [L]
+
+    # Don't rewrite existing files/directories
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Static assets → public/
+    RewriteRule ^(css|js|images|img|fonts|build|storage)/(.*)$ public/$1/$2 [L]
+
+    # Laravel
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+# php -- BEGIN cPanel-generated handler, do not edit
+# Set the “ea-php82” package as the default “PHP” programming language.
+<IfModule mime_module>
+  AddHandler application/x-httpd-ea-php82 .php .php8 .phtml
+</IfModule>
+# php -- END cPanel-generated handler, do not edit

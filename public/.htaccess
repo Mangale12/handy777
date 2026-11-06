@@ -1,0 +1,26 @@
+<IfModule mod_rewrite.c>
+    <IfModule mod_negotiation.c>
+        Options -MultiViews -Indexes
+    </IfModule>
+
+    RewriteEngine On
+
+    # Keep bearer credentials available to Laravel's request object.
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # Chat URLs must always be handled by Laravel, not the legacy public/admin
+    # directory or any old chat entrypoint.
+    RewriteRule ^(?:chat(?:/.*)?|admin/chat(?:/.*)?)$ index.php [L]
+
+    # Remove trailing slashes from non-directories.
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_URI} (.+)/$
+    RewriteRule ^ %1 [L,R=301]
+
+    # Existing assets remain static; every application route goes through
+    # Laravel, including /admin/chat/* despite the legacy public/admin folder.
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ index.php [L]
+</IfModule>
