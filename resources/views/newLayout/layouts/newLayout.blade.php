@@ -5,10 +5,10 @@
 <head>
     <meta charset="utf-8" />
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <link rel="icon" type="image/png" href="https://noorgames.net/images/logochangecolor.gif">
+    <link rel="icon" type="image/jpeg" href="{{ asset('images/abgaming.jpeg') }}">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title') - Noor Games </title>
+    <title>@yield('title') - AB Gaming </title>
     <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, shrink-to-fit=no'
         name='viewport' />
         <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -19,23 +19,27 @@
     <link href="{{ asset('public/newAdmin/css/nucleo-svg.css') }}" rel="stylesheet" />
     
     <!-- switch cherry -->
+    @unless (request()->routeIs('dashboard'))
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/switchery/0.8.2/switchery.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/switchery/0.8.2/switchery.min.js"></script>
+    @endunless
     
     <!-- Font Awesome Icons -->
     <script src="https://kit.fontawesome.com/42d5adcbca.js" crossorigin="anonymous"></script>
     <!-- CSS Files -->
     <link id="pagestyle" href="{{ asset('public/newAdmin/css/argon-dashboard.css') }}" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.css">
+    @unless (request()->routeIs('dashboard'))
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.3/css/jquery.dataTables.css">
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.13/css/dataTables.jqueryui.css" />
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/buttons/1.2.4/css/buttons.jqueryui.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.css">
     <link href="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote.min.css" rel="stylesheet">
     <link href="https://fonts.cdnfonts.com/css/digital-7-mono" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="{{ asset('public/css/bootstrap-tagsinput.css') }}" rel="stylesheet" />
+    @endunless
 
     <link href="{{ asset('public/css/jquery.mCustomScrollbar.css') }}" rel="stylesheet" />
-    <link href="{{ asset('public/css/bootstrap-tagsinput.css') }}" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <style>
         .hidden {
@@ -57,6 +61,59 @@
 
         .swal2-container {
             z-index: 9999 !important;
+        }
+
+        .dashboard-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-left: auto;
+        }
+
+        .dashboard-chat-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 15px;
+            border: 1px solid rgba(255, 255, 255, .25);
+            border-radius: 12px;
+            color: #fff !important;
+            background: linear-gradient(135deg, #246bfe, #7448f5);
+            box-shadow: 0 8px 18px rgba(36, 107, 254, .24);
+            font-size: 13px;
+            font-weight: 700;
+            text-decoration: none !important;
+            transition: transform .2s, box-shadow .2s, filter .2s;
+        }
+
+        .dashboard-chat-link:hover {
+            color: #fff !important;
+            filter: brightness(1.08);
+            box-shadow: 0 11px 24px rgba(36, 107, 254, .35);
+            transform: translateY(-1px);
+        }
+
+        .dashboard-chat-link i {
+            font-size: 15px;
+        }
+
+        .dashboard-menu-toggle {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @media (max-width: 575px) {
+            .dashboard-chat-link span {
+                display: none;
+            }
+
+            .dashboard-chat-link {
+                width: 40px;
+                height: 40px;
+                padding: 0;
+                justify-content: center;
+            }
         }
 
         /* start side nav bar */
@@ -227,10 +284,582 @@ body {
 /* end side nav bar  */
     </style>
 
+    <style>
+        :root {
+            --admin-ink: #17233d;
+            --admin-muted: #8b96ad;
+            --admin-sidebar: #101a34;
+            --admin-sidebar-light: #192850;
+            --admin-accent: #6c63ff;
+            --admin-accent-blue: #2f7bff;
+            --admin-page: #f3f6fb;
+        }
+
+        html,
+        body {
+            min-height: 100%;
+        }
+
+        body.admin-shell {
+            overflow-x: hidden;
+            background: var(--admin-page);
+            color: var(--admin-ink);
+            font-family: 'Open Sans', sans-serif;
+        }
+
+        body.admin-shell::before {
+            position: fixed;
+            z-index: 0;
+            inset: 0;
+            background:
+                radial-gradient(circle at 78% 0%, rgba(110, 99, 255, .13), transparent 32%),
+                radial-gradient(circle at 16% 15%, rgba(47, 123, 255, .09), transparent 28%),
+                var(--admin-page);
+            content: '';
+            pointer-events: none;
+        }
+
+        body.admin-shell .back-image-game {
+            z-index: 0;
+            top: 0;
+            left: 0;
+            height: 330px;
+            min-height: 0 !important;
+            opacity: .96;
+            background:
+                linear-gradient(120deg, rgba(15, 26, 58, .98), rgba(39, 67, 145, .9) 58%, rgba(108, 99, 255, .78)),
+                radial-gradient(circle at 75% 20%, rgba(255, 255, 255, .13), transparent 26%);
+            pointer-events: none;
+        }
+
+        body.admin-shell .back-image-game::after {
+            position: absolute;
+            inset: 0;
+            background-image: linear-gradient(rgba(255, 255, 255, .04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, .04) 1px, transparent 1px);
+            background-size: 32px 32px;
+            content: '';
+            opacity: .35;
+        }
+
+        .admin-sidebar {
+            position: fixed !important;
+            z-index: 1040 !important;
+            top: 16px !important;
+            bottom: 16px !important;
+            left: 16px !important;
+            display: flex !important;
+            flex-direction: column;
+            width: 264px !important;
+            height: auto !important;
+            min-height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, .08) !important;
+            border-radius: 22px !important;
+            background: linear-gradient(180deg, var(--admin-sidebar-light), var(--admin-sidebar)) !important;
+            box-shadow: 0 22px 55px rgba(12, 25, 57, .25);
+            color: #fff !important;
+        }
+
+        .admin-sidebar-brand {
+            flex: 0 0 auto;
+            padding: 20px 18px 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, .09);
+        }
+
+        .admin-brand-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #fff !important;
+            text-decoration: none !important;
+        }
+
+        .admin-brand-mark {
+            display: inline-flex;
+            flex: 0 0 48px;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, .24);
+            border-radius: 15px;
+            background: rgba(255, 255, 255, .08);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, .18);
+        }
+
+        .admin-brand-mark img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+        }
+
+        .admin-brand-copy {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            line-height: 1.25;
+        }
+
+        .admin-brand-copy strong {
+            color: #fff;
+            font-size: 16px;
+            letter-spacing: .01em;
+        }
+
+        .admin-brand-copy small {
+            margin-top: 4px;
+            color: rgba(255, 255, 255, .58);
+            font-size: 10px;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+        }
+
+        .admin-profile-toggle {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            gap: 10px;
+            margin-top: 18px;
+            padding: 10px;
+            border: 1px solid transparent;
+            border-radius: 13px;
+            background: rgba(255, 255, 255, .06);
+            color: #fff;
+            text-align: left;
+            transition: border-color .2s ease, background .2s ease;
+        }
+
+        .admin-profile-toggle:hover,
+        .admin-profile-toggle[aria-expanded="true"] {
+            border-color: rgba(255, 255, 255, .14);
+            background: rgba(255, 255, 255, .11);
+        }
+
+        .admin-user-avatar {
+            display: inline-flex;
+            flex: 0 0 34px;
+            align-items: center;
+            justify-content: center;
+            width: 34px;
+            height: 34px;
+            border-radius: 11px;
+            background: linear-gradient(135deg, #6c63ff, #2f7bff);
+            color: #fff;
+            font-size: 13px;
+        }
+
+        .admin-user-copy {
+            display: flex;
+            flex: 1;
+            flex-direction: column;
+            min-width: 0;
+            line-height: 1.25;
+        }
+
+        .admin-user-copy strong {
+            overflow: hidden;
+            color: #fff;
+            font-size: 12px;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .admin-user-copy small {
+            margin-top: 3px;
+            color: rgba(255, 255, 255, .58);
+            font-size: 10px;
+            text-transform: capitalize;
+        }
+
+        .admin-profile-chevron {
+            color: rgba(255, 255, 255, .6);
+            font-size: 10px;
+            transition: transform .2s ease;
+        }
+
+        .admin-profile-toggle[aria-expanded="true"] .admin-profile-chevron {
+            transform: rotate(180deg);
+        }
+
+        .admin-profile-menu {
+            margin: 8px 0 0 !important;
+            padding: 6px !important;
+            border: 1px solid rgba(255, 255, 255, .08);
+            border-radius: 13px;
+            background: rgba(5, 12, 31, .34);
+        }
+
+        .admin-profile-menu .nav-item {
+            margin: 2px 0 !important;
+        }
+
+        .admin-profile-menu .nav-link {
+            min-height: 36px;
+            padding: 8px 10px !important;
+            border-radius: 9px;
+            color: rgba(255, 255, 255, .76) !important;
+            font-size: 12px;
+        }
+
+        .admin-profile-menu .nav-link:hover {
+            background: rgba(255, 255, 255, .08);
+            color: #fff !important;
+        }
+
+        .admin-profile-menu .icon {
+            width: 22px !important;
+            min-width: 22px;
+            margin-right: 5px !important;
+            background: transparent !important;
+        }
+
+        .admin-profile-menu .nav-link i {
+            padding: 0 !important;
+            color: rgba(255, 255, 255, .68) !important;
+        }
+
+        .admin-sidebar > #sidenav-collapse-main {
+            display: block !important;
+            flex: 1 1 auto;
+            width: 100% !important;
+            min-height: 0;
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+
+        .admin-sidebar #sidenav-collapse-main > .nav-side-menu {
+            width: 100%;
+            height: auto !important;
+            min-height: 0;
+            overflow: hidden;
+            color: #fff !important;
+        }
+
+        .admin-menu-heading {
+            margin: 18px 18px 8px;
+            color: rgba(255, 255, 255, .42);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+        }
+
+        .admin-sidebar .menu-list {
+            padding: 0 10px 12px;
+        }
+
+        .admin-sidebar .menu-content {
+            display: block !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        .admin-sidebar .menu-content > .nav-item,
+        .admin-sidebar .menu-content > li[data-toggle="collapse"] {
+            margin: 3px 0 !important;
+            border: 0 !important;
+        }
+
+        .admin-sidebar .nav-link {
+            display: flex;
+            align-items: center;
+            min-height: 44px;
+            padding: 9px 12px !important;
+            border: 1px solid transparent;
+            border-radius: 12px;
+            color: rgba(255, 255, 255, .7) !important;
+            font-size: 12px;
+            font-weight: 600;
+            transition: color .2s ease, background .2s ease, border-color .2s ease, transform .2s ease;
+        }
+
+        .admin-sidebar .nav-link:hover {
+            transform: translateX(2px);
+            border-color: rgba(255, 255, 255, .08);
+            background: rgba(255, 255, 255, .08);
+            color: #fff !important;
+        }
+
+        .admin-sidebar .nav-link.active {
+            border-color: rgba(255, 255, 255, .14);
+            background: linear-gradient(135deg, rgba(108, 99, 255, .95), rgba(47, 123, 255, .9));
+            box-shadow: 0 9px 18px rgba(24, 47, 126, .28);
+            color: #fff !important;
+        }
+
+        .admin-sidebar .nav-link .icon {
+            display: inline-flex;
+            flex: 0 0 30px;
+            align-items: center;
+            justify-content: center;
+            width: 30px !important;
+            height: 30px;
+            margin-right: 7px !important;
+            border-radius: 9px;
+            background: rgba(255, 255, 255, .08) !important;
+        }
+
+        .admin-sidebar .nav-link i {
+            padding: 0 !important;
+            color: rgba(203, 216, 255, .74) !important;
+            font-size: 13px;
+        }
+
+        .admin-sidebar .nav-link.active i,
+        .admin-sidebar .nav-link:hover i {
+            color: #fff !important;
+        }
+
+        .admin-sidebar .nav-link-text {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .admin-sidebar li[data-toggle="collapse"] > .nav-link {
+            cursor: pointer;
+        }
+
+        .admin-sidebar li[data-toggle="collapse"] > .nav-link .arrow {
+            width: 7px;
+            height: 7px;
+            margin-left: auto;
+            padding: 0;
+            border-top: 1px solid currentColor;
+            border-right: 1px solid currentColor;
+            transform: rotate(45deg);
+            transition: transform .2s ease;
+        }
+
+        .admin-sidebar li[data-toggle="collapse"] > .nav-link .arrow::before {
+            display: none !important;
+            content: none !important;
+        }
+
+        .admin-sidebar li[data-toggle="collapse"]:not(.collapsed) > .nav-link .arrow {
+            transform: rotate(135deg) translate(-2px, 2px);
+        }
+
+        .admin-sidebar .sub-menu {
+            margin: 2px 0 7px !important;
+            padding: 4px 0 4px 14px !important;
+            border-left: 1px solid rgba(255, 255, 255, .12);
+            background: transparent;
+        }
+
+        .admin-sidebar .sub-menu .nav-item {
+            margin: 2px 0 !important;
+            border: 0 !important;
+        }
+
+        .admin-sidebar .sub-menu .nav-link {
+            min-height: 37px;
+            padding: 7px 10px !important;
+            border-radius: 9px;
+            color: rgba(255, 255, 255, .58) !important;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .admin-sidebar .sub-menu .nav-link .icon {
+            flex-basis: 23px;
+            width: 23px !important;
+            height: 23px;
+            margin-right: 5px !important;
+            background: transparent !important;
+        }
+
+        .admin-sidebar .sub-menu .nav-link.active,
+        .admin-sidebar .sub-menu .nav-link:hover {
+            background: rgba(108, 99, 255, .22);
+            color: #fff !important;
+        }
+
+        .admin-sidebar #sidenav-collapse-main > .nav-side-menu,
+        .admin-sidebar #sidenav-collapse-main > .nav-side-menu .menu-list {
+            overflow: visible !important;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, .2) transparent;
+        }
+
+        .admin-sidebar #sidenav-collapse-main > .navbar-nav {
+            display: block;
+            margin: 0 !important;
+            padding: 0 10px 14px;
+        }
+
+        .admin-sidebar #sidenav-collapse-main > .navbar-nav .nav-item {
+            margin: 3px 0 !important;
+        }
+
+        .admin-sidebar #sidenav-collapse-main > .nav-side-menu::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .admin-sidebar #sidenav-collapse-main > .nav-side-menu::-webkit-scrollbar-thumb {
+            border-radius: 10px;
+            background: rgba(255, 255, 255, .2);
+        }
+
+        .admin-sidebar .count-div {
+            flex: 0 0 auto;
+            height: auto !important;
+            margin: 12px 16px;
+            padding: 13px 12px !important;
+            border: 1px solid rgba(255, 255, 255, .08);
+            border-radius: 14px;
+            background: rgba(255, 255, 255, .06) !important;
+        }
+
+        .admin-sidebar .count-div p {
+            margin: 0;
+            color: rgba(255, 255, 255, .58);
+            font-size: 10px;
+            line-height: 1.6;
+        }
+
+        .admin-sidebar .date-div {
+            color: rgba(255, 255, 255, .8) !important;
+            font-size: 11px !important;
+            font-weight: 600;
+        }
+
+        .admin-sidebar .date-countdown {
+            margin-top: 5px !important;
+            border: 0 !important;
+            background: transparent !important;
+            color: #fff !important;
+            font-family: 'Open Sans', sans-serif !important;
+            font-size: 15px !important;
+            font-weight: 700;
+            letter-spacing: .05em;
+        }
+
+        .admin-sidebar .count-div-bottum {
+            margin-top: auto;
+            margin-bottom: 14px;
+            background: rgba(5, 12, 31, .3) !important;
+        }
+
+        .admin-main {
+            z-index: 1;
+            min-height: 100vh;
+            margin-left: 280px !important;
+            background: transparent !important;
+        }
+
+        .admin-main > #navbarBlur {
+            min-height: 76px;
+            margin: 16px 22px 0 !important;
+            border: 1px solid rgba(255, 255, 255, .14) !important;
+            border-radius: 18px !important;
+            background: rgba(20, 37, 79, .72) !important;
+            box-shadow: 0 14px 35px rgba(13, 29, 69, .16) !important;
+            -webkit-backdrop-filter: blur(16px);
+            backdrop-filter: blur(16px);
+        }
+
+        .admin-main > #navbarBlur .breadcrumb-div h6,
+        .admin-main > #navbarBlur .breadcrumb-div .breadcrumb-item,
+        .admin-main > #navbarBlur .breadcrumb-div .breadcrumb-item a {
+            color: rgba(255, 255, 255, .9) !important;
+        }
+
+        .admin-main > .container-fluid {
+            position: relative;
+            z-index: 1;
+            padding: 24px 22px 18px !important;
+        }
+
+        .admin-main .footer {
+            color: var(--admin-muted);
+        }
+
+        .admin-sidebar-backdrop {
+            display: none;
+        }
+
+        @media (max-width: 1199px) {
+            .admin-sidebar {
+                transform: translateX(-112%);
+                visibility: hidden;
+                opacity: 0;
+                transition: transform .25s ease, opacity .25s ease, visibility .25s ease;
+            }
+
+            .admin-sidebar:not(.opac) {
+                transform: translateX(0);
+                visibility: visible;
+                opacity: 1;
+                content-visibility: visible;
+            }
+
+            .admin-sidebar-backdrop {
+                position: fixed;
+                z-index: 1030;
+                inset: 0;
+                display: block;
+                visibility: hidden;
+                background: rgba(8, 15, 35, .5);
+                opacity: 0;
+                transition: opacity .25s ease, visibility .25s ease;
+            }
+
+            .admin-sidebar:not(.opac) + .admin-sidebar-backdrop {
+                visibility: visible;
+                opacity: 1;
+            }
+
+            .admin-main {
+                margin-left: 0 !important;
+            }
+
+            .admin-main > #navbarBlur {
+                margin: 12px 16px 0 !important;
+            }
+
+            .admin-main > .container-fluid {
+                padding: 20px 16px 16px !important;
+            }
+        }
+
+        @media (max-width: 575px) {
+            .admin-sidebar {
+                top: 10px !important;
+                bottom: 10px !important;
+                left: 10px !important;
+                width: min(264px, calc(100vw - 20px)) !important;
+            }
+
+            .admin-main > #navbarBlur {
+                min-height: 64px;
+                margin: 10px 10px 0 !important;
+                border-radius: 15px !important;
+            }
+
+            .admin-main > #navbarBlur .container-fluid {
+                padding: 8px 12px !important;
+            }
+
+            .admin-main > #navbarBlur .breadcrumb {
+                display: none;
+            }
+
+            .admin-main > .container-fluid {
+                padding: 16px 10px !important;
+            }
+        }
+    </style>
+
 
 </head>
 
-<body class="g-sidenav-show  bg-gray-100">
+<body class="admin-shell g-sidenav-show bg-gray-100">
     @php
         if (!(request()->segment(1) == 'table')) {
             session()->forget('tableDate');
@@ -241,20 +870,29 @@ body {
         }
     @endphp
     <div class="min-height-300  position-absolute w-100 back-image-game"></div>
-    {{-- <div class="min-height-300  position-absolute w-100" style="background-color:#ffb342;"></div> --}}
-    <aside class="sidenav bg-white navbar navbar-vertical navbar-expand-xs border-0 border-radius-xl my-3 fixed-start ms-4 d-block opac"
-        aria-labelledby="sidenav-mainfilterlabel" aria-hidden="true">
-        <a href="#" data-target="#user-details" class="nav-link collapsed" data-toggle="collapse">
-        <div class="user-panel mt-2 pb-3 px-1 d-flex">
-            <div class="image">
-              <img src="{{asset('public/img/casinoringyellow.gif')}}" class="img-circle elevation-2" alt="User Image">
-            </div>
-            <div class="info mx-2 mt-1 d-block">
-               <span class="ms-1 font-weight-bold">Noor Game </br> {{ auth()->user()->name }}</span>
-            </div>
-          </div>
-        </a>
-        <ul id="user-details" class="collapse list-unstyled">
+    <aside class="sidenav admin-sidebar navbar navbar-vertical navbar-expand-xs border-0 border-radius-xl fixed-start d-block opac"
+        aria-labelledby="sidenav-mainfilterlabel" aria-hidden="false">
+        <div class="admin-sidebar-brand">
+            <a class="admin-brand-link" href="{{ route('dashboard') }}" aria-label="AB Gaming dashboard">
+                <span class="admin-brand-mark">
+                    <img src="{{ asset('images/abgaming.jpeg') }}" alt="AB Gaming logo">
+                </span>
+                <span class="admin-brand-copy">
+                    <strong>AB Gaming</strong>
+                    <small>Admin console</small>
+                </span>
+            </a>
+            <button type="button" class="admin-profile-toggle collapsed" data-toggle="collapse" data-target="#user-details"
+                aria-controls="user-details" aria-expanded="false">
+                <span class="admin-user-avatar"><i class="fa fa-user" aria-hidden="true"></i></span>
+                <span class="admin-user-copy">
+                    <strong>{{ auth()->user()->name ?? 'User' }}</strong>
+                    <small>{{ ucfirst(auth()->user()->role ?? 'user') }}</small>
+                </span>
+                <i class="fa fa-chevron-down admin-profile-chevron" aria-hidden="true"></i>
+            </button>
+        </div>
+        <ul id="user-details" class="collapse list-unstyled admin-profile-menu">
             {{-- <li class="nav-item mt-3">
                 <h6 class="ps-4 ms-2 text-uppercase text-xs font-weight-bolder opacity-6">Account pages</h6>
             </li> --}}
@@ -270,7 +908,8 @@ body {
             </li>
 
             <li class="nav-item">
-                <a class="nav-link" href="{{ route('logout') }}">
+                <a class="nav-link" href="{{ route('logout') }}"
+                    onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
                     <div
                         class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
                         <i class="fa fa-power-off text-dark text-sm opacity-10"></i>
@@ -287,7 +926,7 @@ body {
                 aria-hidden="true" id="iconSidenav"></i>
             <a class="navbar-brand m-0" href="# " target="_blank">
 
-                <span class="ms-1 font-weight-bold">Noor Game </br> {{ auth()->user()->name }}</span>
+                <span class="ms-1 font-weight-bold">AB Gaming </br> {{ auth()->user()->name }}</span>
             </a>
         </div> --}}
         <div class="count-div p-3 text-center">
@@ -298,7 +937,7 @@ body {
 
         <div class="collapse navbar-collapse  w-auto " id="sidenav-collapse-main">
             <div class=" nav-side-menu">
-                <div class="brand">Brand Logo</div>
+                <div class="admin-menu-heading">Workspace</div>
                 <i class="fa fa-bars fa-2x toggle-btn" data-toggle="collapse" data-target="#menu-content"></i>
 
                     <div class="menu-list">
@@ -823,24 +1462,6 @@ body {
 
             </ul>
         </div>
-        <style>
-            .date-countdown {
-                background: white;
-                font-family: 'Digital-7', sans-serif;
-                font-size: 30px;
-                background: black;
-                color: white;
-                border: 5px solid #ffb342;
-            }
-
-            .count-div {
-                background: #ffd9a2;
-                height: 8rem;
-            }
-            .count-div-bottum{
-                height: auto;
-            }
-        </style>
         <div class="count-div p-2 text-center count-div-bottum ">
             <p>Logged in Since : <br> {{ session()->get('log_in_time') ? session()->get('log_in_time') : '' }}</p>
             {{-- <a class="nav-link d-flex justify-content-center" href="{{ route('logout') }}"
@@ -858,7 +1479,8 @@ body {
 
 
     </aside>
-    <main class="main-content position-relative border-radius-lg ">
+    <div class="admin-sidebar-backdrop" id="admin-sidebar-backdrop" aria-hidden="true"></div>
+    <main class="main-content admin-main position-relative border-radius-lg ">
         <!-- Navbar -->
         <nav class="navbar navbar-main navbar-expand-lg px-0 mx-4 shadow-none border-radius-xl " id="navbarBlur"
             data-scroll="false">
@@ -872,22 +1494,20 @@ body {
                     </ol>
                     <h6 class="font-weight-bolder text-white mb-0">@yield('title')</h6>
                 </nav>
-                <div class="collapse navbar-collapse mt-sm-0 mt-2 me-md-0 me-sm-4" id="navbar">
-                    <div class="ms-md-auto pe-md-3 d-flex align-items-center">
-                        <div class="input-group">
+                <div class="dashboard-header-actions">
+                    @if (in_array(strtolower((string) auth()->user()->role), ['admin', 'cashier'], true))
+                        <a class="dashboard-chat-link" href="{{ route('admin.chat') }}" title="Open support chat">
+                            <i class="fa fa-comments" aria-hidden="true"></i>
+                            <span>Chat</span>
+                        </a>
+                    @endif
+                    <a href="javascript:;" class="dashboard-menu-toggle nav-link text-white p-0 d-xl-none" id="iconNavbarSidenav" aria-label="Toggle navigation">
+                        <div class="sidenav-toggler-inner">
+                            <i class="sidenav-toggler-line bg-white"></i>
+                            <i class="sidenav-toggler-line bg-white"></i>
+                            <i class="sidenav-toggler-line bg-white"></i>
                         </div>
-                    </div>
-                    <ul class="navbar-nav justify-content-end mr-4 position-absolute">
-                        <li class="nav-item d-xl-none ps-3 d-flex align-items-center">
-                            <a href="javascript:;" class="nav-link text-white p-0" id="iconNavbarSidenav">
-                                <div class="sidenav-toggler-inner">
-                                    <i class="sidenav-toggler-line bg-white"></i>
-                                    <i class="sidenav-toggler-line bg-white"></i>
-                                    <i class="sidenav-toggler-line bg-white"></i>
-                                </div>
-                            </a>
-                        </li>
-                    </ul>
+                    </a>
                 </div>
             </div>
         </nav>
@@ -899,12 +1519,12 @@ body {
                     <div class="row align-items-center justify-content-lg-between">
                         <div class="col-lg-6 mb-lg-0 mb-4">
                             <div class="copyright text-center text-sm text-muted text-lg-start">
-                                © Noor Games
+                                © AB Gaming
                                 <script>
                                     document.write(new Date().getFullYear())
                                 </script>
-                                made with by Noor Games
-                                <a class="font-weight-bold" href="https://noorgames.net/">Noor Games</a>
+                                made with by AB Gaming
+                                <a class="font-weight-bold" href="{{ url('/') }}">AB Gaming</a>
                             </div>
                         </div>
                     </div>
@@ -913,18 +1533,14 @@ body {
 
         </div>
     </main>
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
-
 </body>
 
 <!--   Core JS Files   -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 
-
-
+@unless (request()->routeIs('dashboard'))
 <script src="{{ asset('public/js/jquery-input-mask-phone-number.min.js') }}"></script>
 <script src="{{ asset('public/js/bootstrap-tagsinput.min.js') }}"></script>
-<script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.4/jquery-ui.js"></script>
 
 
@@ -946,14 +1562,18 @@ body {
 <script type="text/javascript" src="https://cdn.datatables.net/buttons/1.2.4/js/buttons.flash.js"></script>
 <script type="text/javascript" src="https://cdn.datatables.net/buttons/1.2.4/js/buttons.html5.js"></script>
 <script type="text/javascript" src="https://cdn.datatables.net/buttons/1.2.4/js/buttons.print.js"></script>
+@endunless
+
+<script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 
 <script src="{{ asset('public/js/core/popper.min.js') }}"></script>
 <script src="{{ asset('public/js/core/bootstrap.min.js') }}"></script>
 <script src="{{ asset('public/newAdmin/js/plugins/perfect-scrollbar.min.js') }}"></script>
 <script src="{{ asset('public/newAdmin/js/plugins/smooth-scrollbar.min.js') }}"></script>
+@unless (request()->routeIs('dashboard'))
 <script src="{{ asset('public/newAdmin/js/plugins/chartjs.min.js') }}"></script>
-<script src="{{ asset('public/js/core/bootstrap.min.js') }}"></script>
+@endunless
 <!--<script src="{{ asset('public/newAdmin/js/argon-dashboard.min.js') }}"></script>-->
 
 <script src="{{ asset('public/js/editable.js') }}"></script>
@@ -963,14 +1583,20 @@ body {
 <script src="../../public/js/core/bootstrap.min.js" type="text/javascript"></script>
 <script src="../../public/js/plugins/bootstrap-notify.js"></script>
 <script src="../../public/js/light-bootstrap-dashboard790f.js" type="text/javascript"></script> --}}
+@unless (request()->routeIs('dashboard'))
 <script src="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote.min.js"></script>
+@endunless
 
 <script src="{{ asset('public/js/demo.js') }}"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+@unless (request()->routeIs('dashboard'))
 <script src="{{ asset('public/js/table.js') }}"></script>
+@endunless
 
 <script src="{{ asset('public/js/jquery.mCustomScrollbar.js') }}"></script>
+@unless (request()->routeIs('dashboard'))
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+@endunless
 
 @if (isset($activeGame) && $activeGame['image'] != '')
     <script>
@@ -980,9 +1606,10 @@ body {
     </script>
 @else
     <script>
-        $('.back-image-game').css('background-color', '#ffb342');
+        $('.back-image-game').css('background-color', '#14254f');
     </script>
 @endif
+@unless (request()->routeIs('dashboard'))
 <script>
     $(function() {
         $(".emails").tagsinput('items');
@@ -995,6 +1622,7 @@ body {
         });
     });
 </script>
+@endunless
 @if (session('success'))
     <script>
         toastr.success('{{ session('success') }}');
@@ -1081,12 +1709,54 @@ body {
 <script>
  $(document).ready(function() {
       // Apply Select2 to ALL select elements
-      $('select').select2();
-  });
-    $("#iconNavbarSidenav").click(function() {
+      if ($.fn.select2) {
+          $('select').select2();
+      }
 
-        $('.sidenav').toggleClass("opac");
-    });
+      var $sidebar = $('.admin-sidebar');
+      var $backdrop = $('#admin-sidebar-backdrop');
+
+      $('#iconNavbarSidenav').on('click', function(event) {
+          event.preventDefault();
+          $sidebar.toggleClass('opac');
+      });
+
+      $backdrop.on('click', function() {
+          $sidebar.addClass('opac');
+      });
+
+      // Keep the dropdown arrow and Bootstrap's collapsed state synchronized.
+      $sidebar.on('show.bs.collapse', '.sub-menu, #user-details', function() {
+          var id = this.id;
+          $('[data-target="#' + id + '"]').removeClass('collapsed').attr('aria-expanded', 'true');
+      });
+
+      $sidebar.on('hide.bs.collapse', '.sub-menu, #user-details', function() {
+          var id = this.id;
+          $('[data-target="#' + id + '"]').addClass('collapsed').attr('aria-expanded', 'false');
+      });
+
+      // Open the parent dropdown when the current page is inside it.
+      $sidebar.find('.sub-menu').each(function() {
+          if ($(this).find('.nav-link.active').length) {
+              var id = this.id;
+              $(this).addClass('show');
+              $('[data-target="#' + id + '"]').removeClass('collapsed').attr('aria-expanded', 'true');
+          }
+      });
+
+      // Prevent href="#" from jumping the page when a dropdown is clicked.
+      $sidebar.find('[data-toggle="collapse"] > a[href="#"]').on('click', function(event) {
+          event.preventDefault();
+      });
+
+      // Close the mobile drawer after navigating to another page.
+      $sidebar.find('a:not([href="#"])').on('click', function() {
+          if (window.innerWidth <= 1199) {
+              $sidebar.addClass('opac');
+          }
+      });
+  });
 </script>
 <script>
     jQuery(document).ready(function() {

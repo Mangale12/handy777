@@ -116,16 +116,24 @@ class NewHomeController extends Controller
         //     ];
         // }
         // dd($seven,$ten,$twenty);
-        $settings = GeneralSetting::first()->toArray();
-        // $this->limit_amount = $settings['limit_amount'];
-        $this->limit_amount = $settings['limit_amount'];
-        $this->spinner_message_monthly = $settings['spinner_message_monthly'];
-        $this->spinner_message = $settings['spinner_message'];
-
         $this->middleware(['auth','admin'], ['except' => ['userDetailsApi','dashboard','table','userSpinner','userSpinnerLatest','userDetails']]);
-        $color = DB::table('sidebar')->where('id', 1)
-            ->first('color');
-        view()->share('color', $color);
+
+        // The dashboard does not use these settings. Avoid loading the full
+        // settings row on every dashboard request.
+        if (!request()->routeIs('dashboard')) {
+            $settings = GeneralSetting::query()
+                ->select('limit_amount', 'spinner_message_monthly', 'spinner_message')
+                ->first();
+
+            $this->limit_amount = $settings->limit_amount ?? 0;
+            $this->spinner_message_monthly = $settings->spinner_message_monthly ?? 0;
+            $this->spinner_message = $settings->spinner_message ?? 0;
+        }
+
+        if (!request()->routeIs('dashboard')) {
+            $color = DB::table('sidebar')->where('id', 1)->first('color');
+            view()->share('color', $color);
+        }
         view()->share('limit_amount', $this->limit_amount);
         view()->share('spinner_message_monthly', $this->spinner_message_monthly);
         view()->share('spinner_message', $this->spinner_message);
@@ -413,29 +421,22 @@ class NewHomeController extends Controller
     }
     public function dashboard()
     {
-        // Auth::user()->assignRole("Admin");
-        // dd(Auth::user()->roles);
-        $time_start = microtime(true);
-        // $form = Form::where('id',5)->update(['balance' => 1,'token' => $token_id]);
-        // Mail::to('joshibipin2052@gmail.com')->send(new crossedPlayers(json_encode($form)));
-        // $form = Form::where('id',343)->first()->toArray();
-        // dd(Mail::to('joshibipin2052@gmail.com')->send(new crossedPlayers(json_encode($form))));
-        $total = self::totals();
-        // $total = [
-        //     'load' => 'Loading...',
-        //     'tip' => 'Loading...',
-        //     'redeem' => 'Loading...',
-        //     'refer' => 'Loading...',
-        // ];
+        $isAdmin = strtolower((string) auth()->user()->role) === 'admin';
+        $total = $isAdmin ? $this->totals() : [
+            'load' => 0,
+            'tip' => 0,
+            'redeem' => 0,
+            'refer' => 0,
+        ];
         $formCount = Form::count();
-        $games = Account::where('status', 'active')->get()
-            ->toArray();
-        // dd($total);
-        $time_end = microtime(true);
-        $time = $time_end - $time_start;
-        // dd($time);
+        $games = Account::query()
+            ->where('status', 'active')
+            ->select('id', 'name', 'title', 'balance')
+            ->orderBy('name')
+            ->limit(8)
+            ->get();
+
         return view('newLayout.dashboard', compact('total', 'formCount', 'games'));
-        // return view('new.dashboard',compact('total'));
 
     }
 
@@ -2120,54 +2121,16 @@ public function tableop()
         // return view('mails.report',compact('details'));
 
     }
-    function totals()
+    public function totals()
     {
-        // $history = FormBalance::sum('amount');
-        // dd($history);
         $data = [
-            'load' => FormBalance::get()->sum('amount'),
-            'tip' => FormTip::get()->sum('amount'),
-            'redeem' => FormRedeem::get()->sum('amount'),
-            'refer' => FormRefer::get()->sum('amount'),
+            'load' => FormBalance::query()->sum('amount'),
+            'tip' => FormTip::query()->sum('amount'),
+            'redeem' => FormRedeem::query()->sum('amount'),
+            'refer' => FormRefer::query()->sum('amount'),
         ];
+
         return $data;
-        $history = History::orderBy('id', 'desc')
-            ->get()
-            ->toArray();
-        // $history = History::with('account')->with('form')
-        //     ->whereHas('form')
-        //     ->with('created_by')
-        //     ->orderBy('id', 'desc')
-        //     ->get()
-        //     ->toArray();
-        // $final = [];
-        $totals = ['tip' => 0, 'load' => 0, 'redeem' => 0, 'refer' => 0, 'cashAppLoad' => 0];
-        // $forms = [];
-
-        if (!empty($history))
-        {
-            foreach ($history as $a => $b)
-            {
-                // $form_game = FormGame::where('form_id', $b['form_id'])->where('account_id', $b['account_id'])->first();
-                // if (!empty($form_game))
-                // {
-                    // $form_game->toArray();
-
-                    // $b['form_game'] = $form_game;
-
-                    ($b['type'] == 'tip') ? ($totals['tip'] = $totals['tip'] + $b['amount_loaded']) : ($totals['tip'] = $totals['tip']);
-                    ($b['type'] == 'load') ? ($totals['load'] = $totals['load'] + $b['amount_loaded']) : ($totals['load'] = $totals['load']);
-                    ($b['type'] == 'redeem') ? ($totals['redeem'] = $totals['redeem'] + $b['amount_loaded']) : ($totals['redeem'] = $totals['redeem']);
-                    ($b['type'] == 'refer') ? ($totals['refer'] = $totals['refer'] + $b['amount_loaded']) : ($totals['refer'] = $totals['refer']);
-                    ($b['type'] == 'cashAppLoad') ? ($totals['cashAppLoad'] = $totals['cashAppLoad'] + $b['amount_loaded']) : ($totals['cashAppLoad'] = $totals['cashAppLoad']);
-
-                    // array_push($final, $b);
-                    // array_push($forms, $b['form']);
-                // }
-            }
-        }
-
-        return $totals;
     }
     public function allHistory1()
     {

@@ -1,531 +1,509 @@
 @extends('newLayout.layouts.newLayout')
 
-@section('title')
-     Dashboard
-@endsection
+@section('title', 'Dashboard')
+
 @section('content')
+@php
+    $user = auth()->user();
+    $isAdmin = strtolower((string) ($user->role ?? '')) === 'admin';
+    $canChat = in_array(strtolower((string) ($user->role ?? '')), ['admin', 'cashier'], true);
+    $balance = (float) data_get($total, 'load', 0);
+    $tip = (float) data_get($total, 'tip', 0);
+    $redeem = (float) data_get($total, 'redeem', 0);
+    $refer = (float) data_get($total, 'refer', 0);
+@endphp
+
 <style>
-    table {
-    margin: 1em 0;
-    border-collapse: collapse;
-    border: 0.1em solid #d6d6d6;
+    .dashboard-page {
+        padding: 8px 0 34px;
     }
-    caption {
-    text-align: left;
-    font-style: italic;
-    padding: 0.25em 0.5em 0.5em 0.5em;
-    }
-    th,
-    td {
-    padding: 0.25em 0.5em 0.25em 1em;
-    vertical-align: text-top;
-    text-align: left;
-    text-indent: -0.5em;
-    }
-    th {
-    vertical-align: bottom;
-    background-color: #666;
-    color: #fff;
-    }
-    tr:nth-child(even) th[scope=row] {
-    background-color: #f2f2f2;
-    }
-    tr:nth-child(odd) th[scope=row] {
-    background-color: #fff;
-    }
-    tr:nth-child(even) {
-    background-color: rgba(0, 0, 0, 0.05);
-    }
-    tr:nth-child(odd) {
-    background-color: rgba(255, 255, 255, 0.05);
-    }
- </style>
- <style>
-    #timedate {
-    font: small-caps lighter auto/150% "Segoe UI", Frutiger, "Frutiger Linotype", "Dejavu Sans", "Helvetica Neue", Arial, sans-serif;
-    text-align:left;
-    margin: 40px auto;
-    color:#fff;
-    padding: 20px ;
-    }
- </style>
- <style>
-    .dropbtn {
-    background-color: #ffb342;
-    color: white;
-    padding: 20px;
-    width:auto;
-    font-size: 16px;
-    border: none;
-    border-radius: 25px;
-    cursor: pointer;
-    }
-    .dropbtn:hover, .dropbtn:focus {
-    background-color:#ff9f0f ;
-    }
-    .dropdown {
-    position: relative;
-    display: inline-block;
-    }
-    .dropdown-content {
-    display: none;
-    position: absolute;
-    background-color: #f1f1f1;
-    min-width: 160px;
-    overflow: auto;
-    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-    z-index: 1;
-    }
-    .dropdown-content a {
-    color: black;
-    padding: 12px 16px;
-    text-decoration: none;
-    display: block;
-    }
-    .dropdown a:hover {background-color: #ddd;}
-    .show {display: block;}
- </style>
- @if (Auth::user()->hasRole("Admin"))
-<div class="row">
-    <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
-      <div class="card">
-        <div class="card-body p-3">
-          <div class="row">
-            <div class="col-8">
-              <div class="numbers">
-                <p class="text-sm mb-0 text-uppercase font-weight-bold">Total Balance</p>
-                <h5 class="font-weight-bolder">
-                  ${{$total['load']}}
-                </h5>
 
-              </div>
+    .dashboard-hero {
+        position: relative;
+        overflow: hidden;
+        min-height: 190px;
+        padding: 30px 34px;
+        border-radius: 22px;
+        background: linear-gradient(135deg, #15274a 0%, #254b9b 56%, #7448f5 100%);
+        box-shadow: 0 16px 40px rgba(35, 65, 137, .18);
+        color: #fff;
+    }
+
+    .dashboard-hero::before,
+    .dashboard-hero::after {
+        position: absolute;
+        border-radius: 50%;
+        content: '';
+        pointer-events: none;
+    }
+
+    .dashboard-hero::before {
+        width: 280px;
+        height: 280px;
+        right: -90px;
+        top: -150px;
+        background: rgba(255, 255, 255, .11);
+    }
+
+    .dashboard-hero::after {
+        width: 180px;
+        height: 180px;
+        right: 120px;
+        bottom: -130px;
+        background: rgba(255, 255, 255, .08);
+    }
+
+    .dashboard-hero-content {
+        position: relative;
+        z-index: 1;
+        max-width: 720px;
+    }
+
+    .dashboard-eyebrow {
+        margin-bottom: 10px;
+        color: rgba(255, 255, 255, .72);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: .14em;
+        text-transform: uppercase;
+    }
+
+    .dashboard-hero h1 {
+        margin: 0 0 8px;
+        color: #fff;
+        font-size: clamp(1.75rem, 3vw, 2.45rem);
+        font-weight: 700;
+    }
+
+    .dashboard-hero p {
+        max-width: 560px;
+        margin: 0;
+        color: rgba(255, 255, 255, .78);
+        font-size: 15px;
+    }
+
+    .dashboard-hero-actions {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 22px;
+    }
+
+    .dashboard-action {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 40px;
+        padding: 0 16px;
+        border: 1px solid rgba(255, 255, 255, .28);
+        border-radius: 10px;
+        background: rgba(255, 255, 255, .12);
+        color: #fff;
+        font-size: 13px;
+        font-weight: 600;
+        transition: background .2s ease, transform .2s ease;
+    }
+
+    .dashboard-action:hover {
+        transform: translateY(-1px);
+        background: rgba(255, 255, 255, .22);
+        color: #fff;
+    }
+
+    .dashboard-action-primary {
+        border-color: #fff;
+        background: #fff;
+        color: #254b9b;
+    }
+
+    .dashboard-action-primary:hover {
+        background: #f4f7ff;
+        color: #254b9b;
+    }
+
+    .dashboard-stats {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+        margin-top: 22px;
+    }
+
+    .dashboard-stat-card,
+    .dashboard-panel {
+        border: 1px solid #e8edf6;
+        border-radius: 18px;
+        background: #fff;
+        box-shadow: 0 8px 25px rgba(34, 52, 86, .06);
+    }
+
+    .dashboard-stat-card {
+        position: relative;
+        overflow: hidden;
+        min-height: 138px;
+        padding: 20px;
+    }
+
+    .dashboard-stat-card::after {
+        position: absolute;
+        width: 90px;
+        height: 90px;
+        right: -24px;
+        bottom: -42px;
+        border-radius: 50%;
+        background: var(--stat-soft);
+        content: '';
+    }
+
+    .dashboard-stat-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .dashboard-stat-label {
+        margin: 0;
+        color: #7a8499;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+    }
+
+    .dashboard-stat-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 38px;
+        height: 38px;
+        border-radius: 12px;
+        background: var(--stat-soft);
+        color: var(--stat-color);
+        font-size: 16px;
+    }
+
+    .dashboard-stat-value {
+        position: relative;
+        z-index: 1;
+        margin: 18px 0 0;
+        color: #17233d;
+        font-size: 25px;
+        font-weight: 700;
+    }
+
+    .dashboard-main-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.4fr) minmax(280px, .8fr);
+        gap: 22px;
+        margin-top: 22px;
+    }
+
+    .dashboard-panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 20px 22px;
+        border-bottom: 1px solid #edf0f6;
+    }
+
+    .dashboard-panel-title {
+        margin: 0;
+        color: #17233d;
+        font-size: 16px;
+        font-weight: 700;
+    }
+
+    .dashboard-panel-subtitle {
+        margin: 4px 0 0;
+        color: #8992a5;
+        font-size: 12px;
+    }
+
+    .dashboard-panel-link {
+        color: #315ed8;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .dashboard-panel-link:hover {
+        color: #7448f5;
+    }
+
+    .dashboard-games {
+        padding: 6px 22px 12px;
+    }
+
+    .dashboard-game-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px 0;
+        border-bottom: 1px solid #f0f2f7;
+    }
+
+    .dashboard-game-row:last-child {
+        border-bottom: 0;
+    }
+
+    .dashboard-game-info {
+        display: flex;
+        align-items: center;
+        min-width: 0;
+        gap: 12px;
+    }
+
+    .dashboard-game-mark {
+        display: inline-flex;
+        flex: 0 0 38px;
+        align-items: center;
+        justify-content: center;
+        width: 38px;
+        height: 38px;
+        border-radius: 12px;
+        background: #eef3ff;
+        color: #315ed8;
+        font-size: 14px;
+        font-weight: 800;
+    }
+
+    .dashboard-game-name {
+        overflow: hidden;
+        margin: 0;
+        color: #25304b;
+        font-size: 14px;
+        font-weight: 700;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .dashboard-game-status {
+        margin: 3px 0 0;
+        color: #8b95a8;
+        font-size: 11px;
+    }
+
+    .dashboard-game-balance {
+        flex: 0 0 auto;
+        color: #1b8a5a;
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+    .dashboard-empty {
+        padding: 28px 0;
+        color: #8992a5;
+        font-size: 13px;
+        text-align: center;
+    }
+
+    .dashboard-quick-links {
+        display: grid;
+        gap: 10px;
+        padding: 18px 22px 22px;
+    }
+
+    .dashboard-quick-link {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 13px 14px;
+        border: 1px solid #edf0f6;
+        border-radius: 12px;
+        color: #25304b;
+        font-size: 13px;
+        font-weight: 600;
+        transition: border-color .2s ease, background .2s ease, transform .2s ease;
+    }
+
+    .dashboard-quick-link:hover {
+        transform: translateX(2px);
+        border-color: #cdd9fb;
+        background: #f7f9ff;
+        color: #315ed8;
+    }
+
+    .dashboard-quick-link i:first-child {
+        width: 22px;
+        color: #315ed8;
+        text-align: center;
+    }
+
+    @media (max-width: 1199px) {
+        .dashboard-stats {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 767px) {
+        .dashboard-page {
+            padding-top: 0;
+        }
+
+        .dashboard-hero {
+            padding: 24px 22px;
+            border-radius: 18px;
+        }
+
+        .dashboard-main-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 520px) {
+        .dashboard-stats {
+            grid-template-columns: 1fr;
+        }
+
+        .dashboard-panel-header,
+        .dashboard-games,
+        .dashboard-quick-links {
+            padding-left: 16px;
+            padding-right: 16px;
+        }
+
+        .dashboard-panel-header {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+    }
+</style>
+
+<div class="dashboard-page">
+    <section class="dashboard-hero">
+        <div class="dashboard-hero-content">
+            <div class="dashboard-eyebrow">Control center</div>
+            <h1>Welcome back, {{ $user->name ?? 'there' }}.</h1>
+            <p>Keep an eye on your platform activity and jump straight to the tools you use most.</p>
+
+            <div class="dashboard-hero-actions">
+                @if ($canChat)
+                    <a class="dashboard-action dashboard-action-primary" href="{{ route('admin.chat') }}">
+                        <i class="fa fa-comments" aria-hidden="true"></i>
+                        Open chat
+                    </a>
+                @endif
+                <a class="dashboard-action" href="{{ route('gamers') }}">
+                    <i class="fa fa-users" aria-hidden="true"></i>
+                    View gamers
+                </a>
             </div>
-            <div class="col-4 text-end">
-              <div class="icon icon-shape bg-gradient-primary shadow-primary text-center rounded-circle">
-                <i class="ni ni-money-coins text-lg opacity-10" aria-hidden="true"></i>
-              </div>
-            </div>
-          </div>
         </div>
-      </div>
-    </div>
-    <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
-      <div class="card">
-        <div class="card-body p-3">
-          <div class="row">
-            <div class="col-8">
-              <div class="numbers">
-                <p class="text-sm mb-0 text-uppercase font-weight-bold">Total Tip</p>
-                <h5 class="font-weight-bolder">
-                   ${{$total['tip']}}
-                </h5>
+    </section>
 
-              </div>
-            </div>
-            <div class="col-4 text-end">
-              <div class="icon icon-shape bg-gradient-danger shadow-danger text-center rounded-circle">
-                <i class="ni ni-world text-lg opacity-10" aria-hidden="true"></i>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
-      <div class="card">
-        <div class="card-body p-3">
-          <div class="row">
-            <div class="col-8">
-              <div class="numbers">
-                <p class="text-sm mb-0 text-uppercase font-weight-bold">Total Redeem</p>
-                <h5 class="font-weight-bolder">
-                +{{$total['redeem']}}
-                </h5>
-
-              </div>
-            </div>
-            <div class="col-4 text-end">
-              <div class="icon icon-shape bg-gradient-success shadow-success text-center rounded-circle">
-                <i class="ni ni-paper-diploma text-lg opacity-10" aria-hidden="true"></i>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-xl-3 col-sm-6">
-      <div class="card">
-        <div class="card-body p-3">
-          <div class="row">
-            <div class="col-8">
-              <div class="numbers">
-                <p class="text-sm mb-0 text-uppercase font-weight-bold">Total Profit</p>
-                <h5 class="font-weight-bolder">
-                  ${{$total['load'] - $total['redeem']}}
-                </h5>
-
-              </div>
-            </div>
-            <div class="col-4 text-end">
-              <div class="icon icon-shape bg-gradient-warning shadow-warning text-center rounded-circle">
-                <i class="ni ni-cart text-lg opacity-10" aria-hidden="true"></i>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-</div>
-<div class="row" style="padding-top:40px;">
-    <div class="col-xl-4 col-sm-4 mb-xl-0 mb-4">
-      <div class="card">
-        <div class="card-body p-3">
-          <div class="row">
-            <div class="col-8">
-              <div class="numbers">
-                <p class="text-sm mb-0 text-uppercase font-weight-bold">Total Refer </p>
-                <h5 class="font-weight-bolder">
-                  ${{$total['refer']}} 
-                </h5>
-
-              </div>
-            </div>
-            <div class="col-4 text-end">
-              <div class="icon icon-shape bg-gradient-primary shadow-primary text-center rounded-circle">
-                <i class="ni ni-money-coins text-lg opacity-10" aria-hidden="true"></i>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!--<div class="col-xl-4 col-sm-4 mb-xl-0 mb-4">-->
-    <!--  <div class="card">-->
-    <!--    <div class="card-body p-3">-->
-    <!--      <div class="row">-->
-    <!--        {{-- <div class="col-8">-->
-    <!--          <div class="numbers">-->
-    <!--            <p class="text-sm mb-0 text-uppercase font-weight-bold">Total Amount</p>-->
-    <!--            <h5 class="font-weight-bolder">-->
-    <!--              +{{$total['cashAppLoad']}}-->
-    <!--            </h5>-->
-
-    <!--          </div>-->
-    <!--        </div> --}}-->
-    <!--        <div class="col-4 text-end">-->
-    <!--          <div class="icon icon-shape bg-gradient-success shadow-success text-center rounded-circle">-->
-    <!--            <i class="ni ni-paper-diploma text-lg opacity-10" aria-hidden="true"></i>-->
-    <!--          </div>-->
-    <!--        </div>-->
-    <!--      </div>-->
-    <!--    </div>-->
-    <!--  </div>-->
-    <!--</div>-->
-
-    <div class="col-xl-4 col-sm-4 mb-xl-0 mb-4">
-        <div class="card">
-          <div class="card-body p-3">
-            <div class="row">
-              <div class="col-8">
-                <div class="numbers">
-                  <p class="text-sm mb-0 text-uppercase font-weight-bold">Total Cloud Gamers</p>
-                  <h5 class="font-weight-bolder">
-                    +{{$formCount}}
-                  </h5>
-
+    <section class="dashboard-stats" aria-label="Dashboard statistics">
+        @if ($isAdmin)
+            <article class="dashboard-stat-card" style="--stat-color:#315ed8;--stat-soft:#edf2ff;">
+                <div class="dashboard-stat-top">
+                    <p class="dashboard-stat-label">Total balance</p>
+                    <span class="dashboard-stat-icon"><i class="fa fa-money" aria-hidden="true"></i></span>
                 </div>
-              </div>
-              <div class="col-4 text-end">
-                <div class="icon icon-shape bg-gradient-success shadow-success text-center rounded-circle">
-                  <i class="ni ni-paper-diploma text-lg opacity-10" aria-hidden="true"></i>
+                <p class="dashboard-stat-value">${{ number_format($balance, 2) }}</p>
+            </article>
+
+            <article class="dashboard-stat-card" style="--stat-color:#9c5bd6;--stat-soft:#f5edff;">
+                <div class="dashboard-stat-top">
+                    <p class="dashboard-stat-label">Total tip</p>
+                    <span class="dashboard-stat-icon"><i class="fa fa-gift" aria-hidden="true"></i></span>
                 </div>
-              </div>
+                <p class="dashboard-stat-value">${{ number_format($tip, 2) }}</p>
+            </article>
+
+            <article class="dashboard-stat-card" style="--stat-color:#1b8a5a;--stat-soft:#eaf9f1;">
+                <div class="dashboard-stat-top">
+                    <p class="dashboard-stat-label">Total redeem</p>
+                    <span class="dashboard-stat-icon"><i class="fa fa-arrow-circle-down" aria-hidden="true"></i></span>
+                </div>
+                <p class="dashboard-stat-value">${{ number_format($redeem, 2) }}</p>
+            </article>
+
+            <article class="dashboard-stat-card" style="--stat-color:#dd8a24;--stat-soft:#fff5e7;">
+                <div class="dashboard-stat-top">
+                    <p class="dashboard-stat-label">Total profit</p>
+                    <span class="dashboard-stat-icon"><i class="fa fa-line-chart" aria-hidden="true"></i></span>
+                </div>
+                <p class="dashboard-stat-value">${{ number_format($balance - $redeem, 2) }}</p>
+            </article>
+
+            <article class="dashboard-stat-card" style="--stat-color:#315ed8;--stat-soft:#edf2ff;">
+                <div class="dashboard-stat-top">
+                    <p class="dashboard-stat-label">Total referral</p>
+                    <span class="dashboard-stat-icon"><i class="fa fa-share-alt" aria-hidden="true"></i></span>
+                </div>
+                <p class="dashboard-stat-value">${{ number_format($refer, 2) }}</p>
+            </article>
+        @endif
+
+        <article class="dashboard-stat-card" style="--stat-color:#e45c74;--stat-soft:#fff0f3;">
+            <div class="dashboard-stat-top">
+                <p class="dashboard-stat-label">Cloud gamers</p>
+                <span class="dashboard-stat-icon"><i class="fa fa-users" aria-hidden="true"></i></span>
             </div>
-          </div>
-        </div>
-    </div>
-</div>
+            <p class="dashboard-stat-value">{{ number_format((int) $formCount) }}</p>
+        </article>
+    </section>
 
-
-  <div class="row mt-4">
-    <div class="col-lg-7 mb-lg-0 mb-4">
-      <div class="card z-index-2 h-100">
-        <div class="card-header pb-0 pt-3 bg-transparent">
-          <h6 class="text-capitalize">Sales overview</h6>
-          <p class="text-sm mb-0">
-            <i class="fa fa-arrow-up text-success"></i>
-            <span class="font-weight-bold">4% more</span> in 2021
-          </p>
-        </div>
-        <div class="card-body p-3">
-          <div class="chart">
-            <canvas id="chart-line" class="chart-canvas" height="300"></canvas>
-          </div>
-        </div>
-      </div>
-    </div>
-
-     <div class="col-lg-5">
-      <div class="card">
-        <div class="card-header pb-0 p-3">
-          <h6 class="mb-0">All Games</h6>
-        </div>
-        <div class="card-body p-3">
-          <ul class="list-group">
-              @if (isset($games) && !empty($games))
-                  @foreach ($games as $a => $num)
-                    <li class="list-group-item border-0 d-flex justify-content-between ps-0 mb-2 border-radius-lg">
-                        <div class="d-flex align-items-center">
-                        <div class="icon icon-shape icon-sm me-3 bg-gradient-dark shadow text-center">
-                            <i class="ni ni-mobile-button text-white opacity-10"></i>
-                        </div>
-                        <div class="d-flex flex-column">
-                            <h6 class="mb-1 text-dark text-sm">{{($num['name'])}}</h6>
-                            <span class="text-xs">{{($num['balance'])}}</span>
-                        </div>
-                        </div>
-                        <div class="d-flex">
-                        <button class="btn btn-link btn-icon-only btn-rounded btn-sm text-dark icon-move-right my-auto"><i class="ni ni-bold-right" aria-hidden="true"></i></button>
-                        </div>
-                    </li>
-                  @endforeach
-              @endif
-          </ul>
-        </div>
-      </div>
-    </div>
-
-
-  </div>
-  @endif
-   <div class="row">
-    <!--<div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">-->
-    <!--  <div class="card">-->
-    <!--    <div class="card-body p-3">-->
-    <!--      <div class="row">-->
-    <!--        <div class="col-8">-->
-    <!--          <div class="numbers">-->
-    <!--            <p class="text-sm mb-0 text-uppercase font-weight-bold">Total Balance</p>-->
-    <!--            <h5 class="font-weight-bolder">-->
-    {{-- <!--              ${{$total['load']}}--> --}}
-    <!--            </h5>-->
-
-    <!--          </div>-->
-    <!--        </div>-->
-    <!--        <div class="col-4 text-end">-->
-    <!--          <div class="icon icon-shape bg-gradient-primary shadow-primary text-center rounded-circle">-->
-    <!--            <i class="ni ni-money-coins text-lg opacity-10" aria-hidden="true"></i>-->
-    <!--          </div>-->
-    <!--        </div>-->
-    <!--      </div>-->
-    <!--    </div>-->
-    <!--  </div>-->
-    <!--</div>-->
-    <!--<div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">-->
-    <!--  <div class="card">-->
-    <!--    <div class="card-body p-3">-->
-    <!--      <div class="row">-->
-    <!--        <div class="col-8">-->
-    <!--          <div class="numbers">-->
-    <!--            <p class="text-sm mb-0 text-uppercase font-weight-bold">Total Tip</p>-->
-    <!--            <h5 class="font-weight-bolder">-->
-    {{-- <!--              ${{$total['tip']}}--> --}}
-    <!--            </h5>-->
-
-    <!--          </div>-->
-    <!--        </div>-->
-    <!--        <div class="col-4 text-end">-->
-    <!--          <div class="icon icon-shape bg-gradient-danger shadow-danger text-center rounded-circle">-->
-    <!--            <i class="ni ni-world text-lg opacity-10" aria-hidden="true"></i>-->
-    <!--          </div>-->
-    <!--        </div>-->
-    <!--      </div>-->
-    <!--    </div>-->
-    <!--  </div>-->
-    <!--</div>-->
-    <!--<div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">-->
-    <!--  <div class="card">-->
-    <!--    <div class="card-body p-3">-->
-    <!--      <div class="row">-->
-    <!--        <div class="col-8">-->
-    <!--          <div class="numbers">-->
-    <!--            <p class="text-sm mb-0 text-uppercase font-weight-bold">Total Redeem</p>-->
-    <!--            <h5 class="font-weight-bolder">-->
-    {{-- <!--              +{{$total['redeem']}}--> --}}
-    <!--            </h5>-->
-
-    <!--          </div>-->
-    <!--        </div>-->
-    <!--        <div class="col-4 text-end">-->
-    <!--          <div class="icon icon-shape bg-gradient-success shadow-success text-center rounded-circle">-->
-    <!--            <i class="ni ni-paper-diploma text-lg opacity-10" aria-hidden="true"></i>-->
-    <!--          </div>-->
-    <!--        </div>-->
-    <!--      </div>-->
-    <!--    </div>-->
-    <!--  </div>-->
-    <!--</div>-->
-
-</div>
-<div class="row" style="padding-top:40px;">
-
-
-
-<a href ={{route('gamers')}}>
-    <div class="col-xl-4 col-sm-4 mb-xl-0 mb-4">
-        <div class="card">
-          <div class="card-body p-3">
-            <div class="row">
-              <div class="col-8">
-                <div class="numbers">
-                  <p class="text-sm mb-0 text-uppercase font-weight-bold">Total Noor Gamers</p>
-                  <h5 class="font-weight-bolder">
-                    +{{$formCount}}
-                  </h5>
-
+    <section class="dashboard-main-grid">
+        <article class="dashboard-panel">
+            <div class="dashboard-panel-header">
+                <div>
+                    <h2 class="dashboard-panel-title">Active games</h2>
+                    <p class="dashboard-panel-subtitle">Currently available game accounts</p>
                 </div>
-              </div>
-              <div class="col-4 text-end">
-                <div class="icon icon-shape bg-gradient-success shadow-success text-center rounded-circle">
-                  <i class="ni ni-paper-diploma text-lg opacity-10" aria-hidden="true"></i>
-                </div>
-              </div>
+                <a class="dashboard-panel-link" href="{{ route('games') }}">Manage games <i class="fa fa-angle-right" aria-hidden="true"></i></a>
             </div>
-          </div>
-        </div>
-    </div>
-    </a>
+
+            <div class="dashboard-games">
+                @forelse ($games as $game)
+                    @php
+                        $gameName = $game->name ?: ($game->title ?: 'Game');
+                        $gameInitial = strtoupper(substr($gameName, 0, 1));
+                    @endphp
+                    <div class="dashboard-game-row">
+                        <div class="dashboard-game-info">
+                            <span class="dashboard-game-mark">{{ $gameInitial }}</span>
+                            <div>
+                                <p class="dashboard-game-name">{{ $gameName }}</p>
+                                <p class="dashboard-game-status"><i class="fa fa-circle text-success" aria-hidden="true"></i> Active</p>
+                            </div>
+                        </div>
+                        <span class="dashboard-game-balance">${{ number_format((float) ($game->balance ?? 0), 2) }}</span>
+                    </div>
+                @empty
+                    <div class="dashboard-empty">No active games found.</div>
+                @endforelse
+            </div>
+        </article>
+
+        <article class="dashboard-panel">
+            <div class="dashboard-panel-header">
+                <div>
+                    <h2 class="dashboard-panel-title">Quick actions</h2>
+                    <p class="dashboard-panel-subtitle">Get where you need to go</p>
+                </div>
+            </div>
+
+            <div class="dashboard-quick-links">
+                <a class="dashboard-quick-link" href="{{ route('gamers') }}">
+                    <span><i class="fa fa-users" aria-hidden="true"></i> Manage gamers</span>
+                    <i class="fa fa-angle-right" aria-hidden="true"></i>
+                </a>
+                <a class="dashboard-quick-link" href="{{ route('games') }}">
+                    <span><i class="fa fa-gamepad" aria-hidden="true"></i> Manage games</span>
+                    <i class="fa fa-angle-right" aria-hidden="true"></i>
+                </a>
+                @if ($canChat)
+                    <a class="dashboard-quick-link" href="{{ route('admin.chat') }}">
+                        <span><i class="fa fa-comments" aria-hidden="true"></i> Open admin chat</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+                @endif
+            </div>
+        </article>
+    </section>
 </div>
-
-
-  <div class="row mt-4">
-
-
-     <div class="col-lg-5">
-      <div class="card">
-        <div class="card-header pb-0 p-3">
-          <h6 class="mb-0">All Games</h6>
-        </div>
-        <div class="card-body p-3">
-          <ul class="list-group">
-              @if (isset($games) && !empty($games))
-                  @foreach ($games as $a => $num)
-                    <li class="list-group-item border-0 d-flex justify-content-between ps-0 mb-2 border-radius-lg">
-                        <div class="d-flex align-items-center">
-                        <div class="icon icon-shape icon-sm me-3 bg-gradient-dark shadow text-center">
-                            <i class="ni ni-mobile-button text-white opacity-10"></i>
-                        </div>
-                        <div class="d-flex flex-column">
-                            <h6 class="mb-1 text-dark text-sm">{{($num['name'])}}</h6>
-                            <span class="text-xs">{{($num['balance'])}}</span>
-                        </div>
-                        </div>
-                        <a href="{{route('games')}}">
-                        <div class="d-flex">
-                        <button class="btn btn-link btn-icon-only btn-rounded btn-sm text-dark icon-move-right my-auto"><i class="ni ni-bold-right" aria-hidden="true"></i></button>
-                        </div></a>
-                    </li>
-                  @endforeach
-              @endif
-          </ul>
-        </div>
-      </div>
-    </div>
-
-
-  </div>
-   <script>
-    var ctx1 = document.getElementById("chart-line").getContext("2d");
-
-    var gradientStroke1 = ctx1.createLinearGradient(0, 230, 0, 50);
-
-    gradientStroke1.addColorStop(1, 'rgba(94, 114, 228, 0.2)');
-    gradientStroke1.addColorStop(0.2, 'rgba(94, 114, 228, 0.0)');
-    gradientStroke1.addColorStop(0, 'rgba(94, 114, 228, 0)');
-    new Chart(ctx1, {
-      type: "line",
-      data: {
-        labels: ["Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-        datasets: [{
-          label: "Mobile apps",
-          tension: 0.4,
-          borderWidth: 0,
-          pointRadius: 0,
-          borderColor: "#5e72e4",
-          backgroundColor: gradientStroke1,
-          borderWidth: 3,
-          fill: true,
-          data: [50, 40, 300, 220, 500, 250, 400, 230, 500],
-          maxBarThickness: 6
-
-        }],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            display: false,
-          }
-        },
-        interaction: {
-          intersect: false,
-          mode: 'index',
-        },
-        scales: {
-          y: {
-            grid: {
-              drawBorder: false,
-              display: true,
-              drawOnChartArea: true,
-              drawTicks: false,
-              borderDash: [5, 5]
-            },
-            ticks: {
-              display: true,
-              padding: 10,
-              color: '#fbfbfb',
-              font: {
-                size: 11,
-                family: "Open Sans",
-                style: 'normal',
-                lineHeight: 2
-              },
-            }
-          },
-          x: {
-            grid: {
-              drawBorder: false,
-              display: false,
-              drawOnChartArea: false,
-              drawTicks: false,
-              borderDash: [5, 5]
-            },
-            ticks: {
-              display: true,
-              color: '#ccc',
-              padding: 20,
-              font: {
-                size: 11,
-                family: "Open Sans",
-                style: 'normal',
-                lineHeight: 2
-              },
-            }
-          },
-        },
-      },
-    });
-  </script>
-  <script>
-    var win = navigator.platform.indexOf('Win') > -1;
-    if (win && document.querySelector('#sidenav-scrollbar')) {
-      var options = {
-        damping: '0.5'
-      }
-      Scrollbar.init(document.querySelector('#sidenav-scrollbar'), options);
-    }
-  </script>
 @endsection
-

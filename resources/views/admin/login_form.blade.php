@@ -1,81 +1,139 @@
-@extends('admin/login')
+@extends('admin.login')
+
 @section('content')
-<section id="login-page-wrapper">
-
-    <!-- Login Us -->
-    <section id="login-register-wrapper" class="p-lg-5 p-md-4 p-3 d-flex justify-content-center align-items-center">
-        <div class="container">
-            <div class="login-register-form p-xl-5 p-lg-5 p-md-2 p-0">
-                <div class="row position-relative p-lg-3 p-md-3 p-sm-2 p-2">
-                    <div class="col-xl-4 col-lg-4 col-md-5  mx-auto form-wrapper">
-                        
-                        <form class="p-2" method="POST" action="{{ route('admin.login') }}">
-                            @if ($errors->any())
-                            <div class="alert alert-danger">
-                                {{ $errors->first() }}
-                            </div>
-                        @endif
-                            @csrf
-                            <div class="text-center">
-                                <!-- <h1 class="font-weight-bold my-xl-4 my-md-3 my-4">Login</h1> -->
-                                <div class="logo my-xl-4 my-md-3 my-4">
-                                   
-                                </div>
-                                <div class="form-group position-relative mb-xl-4 mb-md-3 mb-2">
-                                    <input type="email" class="form-control border-top-0 border-right-0 border-left-0 rounded-0 shadow-none bg-transparent" id="email" name="email" placeholder="Email" required>
-                                    <i class="fa fa-user-o" aria-hidden="true"></i>
-                                    @error('email')
-                                    <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
-                                @enderror
-                                </div>
-                                <div class="form-group position-relative mb-xl-4 mb-md-3 mb-2">
-                                    <input type="password" class="form-control border-top-0 border-right-0 border-left-0 rounded-0
-                                            shadow-none bg-transparent" id="password" name="password" placeholder="Password">
-                                    <i class="fa fa-key" aria-hidden="true"></i>
-                                    @error('password')
-                                <span class="invalid-feedback" role="alert">
-                                    <strong>{{ $message }}</strong>
-                                </span>
-                            @enderror
-                                </div>
-                                <div class="row mt-2 mb-3">
-                                    <div class="col-md-6">
-                                        <div class="form-check">
-                                            <input class="form-check-input border-0 outline-0" type="checkbox" value="" id="defaultCheck1">
-                                            <label class="form-check-label" for="defaultCheck1">
-                                                Remember me
-                                            </label>
-                                        </div>
-                                    </div>
-                                    <!-- <div class="col-md-6 text-xl-right text-lg-right text-center mt-xl-0 mt-lg-0 mt-2">
-                                        <a href="#">Forgot Password?</a>
-                                    </div> -->
-                                </div>
-
-                                <button type="submit" class="btn btn-1 hover-filled-slide-up px-5 py-2 text-uppercase text-white">
-                                    <span> Login</span>
-                                </button>
-
-                                <p class="text-center mt-4">
-                                    <a href="{{ route('admin.login.change_password') }}">Forgot Password?</a>
-
-                                    <span>
-                                        <!-- <a href="register-login.html">Register</a> -->
-                                    </span>
-
-                                </p>
-                                
-                            </div>
-                        </form>
-                    </div>
-                </div>
+    <section class="admin-auth-content" aria-label="Administrator sign in">
+        <aside class="admin-auth-brand">
+            <div class="admin-brand-copy">
+                <div class="admin-brand-mark" aria-hidden="true">AB</div>
+                <p class="admin-brand-kicker">AB Gaming control center</p>
+                <h1>Run your game room with confidence.</h1>
+                <p class="admin-brand-description">
+                    Manage players, games, balances, reports, and support conversations from one secure dashboard.
+                </p>
             </div>
-        </div>
+            <div class="admin-brand-footer">Secure administrator access</div>
+        </aside>
+
+        <section class="admin-auth-form-panel">
+            <div class="admin-auth-form">
+                <p class="admin-auth-eyebrow">Welcome back</p>
+                <h2>Sign in</h2>
+                <p class="admin-auth-subtitle">Use your administrator account to continue to the dashboard.</p>
+
+                @if ($errors->any())
+                    <div class="admin-auth-alert" role="alert">
+                        <span aria-hidden="true">⚠</span>
+                        <span>{{ $errors->first() }}</span>
+                    </div>
+                @endif
+
+                @if (session('message'))
+                    <div class="admin-auth-alert" role="status" style="border-color:#bbf7d0;color:#166534;background:#f0fdf4;">
+                        <span aria-hidden="true">✓</span>
+                        <span>{{ session('message') }}</span>
+                    </div>
+                @endif
+
+                <form id="admin-login-form" method="POST" action="{{ route('admin.login') }}">
+                    @csrf
+
+                    <div class="admin-auth-field">
+                        <label for="email">Email address</label>
+                        <div class="admin-input-wrap">
+                            <svg class="admin-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v11a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17.5v-11Z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m5 7 7 5 7-5" />
+                            </svg>
+                            <input
+                                class="admin-auth-input"
+                                id="email"
+                                name="email"
+                                type="email"
+                                value="{{ old('email') }}"
+                                placeholder="admin@example.com"
+                                autocomplete="username"
+                                required
+                                autofocus
+                            >
+                        </div>
+                        @error('email')
+                            <span class="admin-field-error">{{ $message }}</span>
+                        @enderror
+                    </div>
+
+                    <div class="admin-auth-field">
+                        <label for="password">Password</label>
+                        <div class="admin-input-wrap">
+                            <svg class="admin-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                <rect x="4" y="10" width="16" height="10" rx="2" />
+                                <path stroke-linecap="round" d="M8 10V7a4 4 0 0 1 8 0v3" />
+                            </svg>
+                            <input
+                                class="admin-auth-input admin-password-input"
+                                id="password"
+                                name="password"
+                                type="password"
+                                placeholder="Enter your password"
+                                autocomplete="current-password"
+                                required
+                            >
+                            <button class="admin-password-toggle" id="toggle-password" type="button" aria-label="Show password" aria-pressed="false">
+                                <svg id="password-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
+                                    <circle cx="12" cy="12" r="2.5" />
+                                </svg>
+                            </button>
+                        </div>
+                        @error('password')
+                            <span class="admin-field-error">{{ $message }}</span>
+                        @enderror
+                    </div>
+
+                    <div class="admin-auth-options">
+                        <div class="admin-auth-remember">
+                            <input id="remember" name="remember" type="checkbox" value="1" {{ old('remember') ? 'checked' : '' }}>
+                            <label for="remember">Remember me</label>
+                        </div>
+                        <a class="admin-auth-forgot" href="{{ route('admin.login.change_password') }}">Forgot password?</a>
+                    </div>
+
+                    <button class="admin-auth-submit" id="admin-login-submit" type="submit">
+                        <span class="admin-submit-label">Sign in to dashboard</span>
+                        <span class="admin-submit-spinner" aria-hidden="true"></span>
+                    </button>
+                </form>
+
+                <p class="admin-auth-note">Your administrator session is protected with encrypted authentication.</p>
+            </div>
+        </section>
     </section>
-    <!-- Login Us Ends -->
 
+    <script>
+        (() => {
+            const password = document.getElementById('password');
+            const toggle = document.getElementById('toggle-password');
+            const eye = document.getElementById('password-eye');
+            const form = document.getElementById('admin-login-form');
+            const submit = document.getElementById('admin-login-submit');
 
-</section>
+            if (password && toggle && eye) {
+                toggle.addEventListener('click', () => {
+                    const isVisible = password.type === 'text';
+                    password.type = isVisible ? 'password' : 'text';
+                    toggle.setAttribute('aria-label', isVisible ? 'Show password' : 'Hide password');
+                    toggle.setAttribute('aria-pressed', String(!isVisible));
+                    eye.innerHTML = isVisible
+                        ? '<path stroke-linecap="round" stroke-linejoin="round" d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.5"/>'
+                        : '<path stroke-linecap="round" stroke-linejoin="round" d="m3 3 18 18M10.6 5.2A9.7 9.7 0 0 1 12 5c6 0 9.5 7 9.5 7a17.6 17.6 0 0 1-3.2 3.9M6.3 6.3C3.8 8 2.5 12 2.5 12s3.5 7 9.5 7c1.3 0 2.5-.3 3.5-.8"/><path stroke-linecap="round" stroke-linejoin="round" d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/>';
+                });
+            }
+
+            if (form && submit) {
+                form.addEventListener('submit', () => {
+                    submit.disabled = true;
+                    submit.classList.add('is-loading');
+                });
+            }
+        })();
+    </script>
 @endsection
