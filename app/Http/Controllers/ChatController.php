@@ -82,6 +82,7 @@ class ChatController extends Controller
                     'visitor_name' => $name,
                     'visitor_email' => $email,
                     'browser_fp' => $data['fp'],
+                    'ip_address' => $request->ip(),
                     'last_presence' => now(),
                     'last_activity' => now(),
                 ]);
@@ -145,28 +146,43 @@ class ChatController extends Controller
             ? 'seen'
             : ($adminOnline ? 'delivered' : 'sent');
 
-        $message = null;
-        if ($request->hasFile('image')) {
-            $file = $request->file('image');
-            $request->validate([
+        $data = $request->validate([
+            'message' => ['nullable', 'string', 'max:5000'],
+        ]);
+        $messageText = trim((string) ($data['message'] ?? ''));
+        $file = $request->file('file') ?: $request->file('image');
+
+        if (!$file && $messageText === '') {
+            return response()->json(['error' => 'Write a message or attach a file.'], 422);
+        }
+
+        $message = [
+            'message_type' => 'text',
+            'message' => $messageText !== '' ? $messageText : null,
+        ];
+
+        if ($file) {
+            $fileField = $request->hasFile('file') ? 'file' : 'image';
+            $fileRules = [
+                'file' => ['file', 'max:10240', 'mimes:jpg,jpeg,png,gif,webp,pdf,doc,docx,xls,xlsx,csv,txt,zip'],
                 'image' => ['image', 'mimes:jpg,jpeg,png,gif,webp', 'max:10240'],
-            ]);
+            ];
+            $request->validate([$fileField => $fileRules[$fileField]]);
+
+            $uploadDirectory = public_path('uploads');
+            if (!is_dir($uploadDirectory)) {
+                mkdir($uploadDirectory, 0755, true);
+            }
 
             $fileName = Str::random(32) . '.' . strtolower($file->getClientOriginalExtension());
-            $file->move(public_path('uploads'), $fileName);
-            $message = [
-                'message_type' => 'image',
-                'file_path' => 'uploads/' . $fileName,
-                'file_name' => $file->getClientOriginalName(),
-            ];
-        } else {
-            $data = $request->validate([
-                'message' => ['required', 'string', 'max:5000'],
-            ]);
-            $message = [
-                'message_type' => 'text',
-                'message' => trim($data['message']),
-            ];
+            // Read the MIME type while the uploaded temporary file still exists.
+            $mimeType = (string) $file->getMimeType();
+            $file->move($uploadDirectory, $fileName);
+            $message['message_type'] = strpos($mimeType, 'image/') === 0
+                ? 'image'
+                : 'file';
+            $message['file_path'] = 'uploads/' . $fileName;
+            $message['file_name'] = $file->getClientOriginalName();
         }
 
         RateLimiter::hit($rateKey, self::RATE_DECAY);
@@ -369,7 +385,7 @@ class ChatController extends Controller
     {
         $data = (array) $message;
         $data['file_url'] = !empty($data['file_path'])
-            ? asset(ltrim($data['file_path'], '/'))
+            ? asset('public/' . ltrim($data['file_path'], '/'))
             : null;
 
         return $data;

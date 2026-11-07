@@ -364,6 +364,13 @@
         border-radius: 10px; cursor: pointer;
         display: block; object-fit: cover;
       }
+      .wc-file-link {
+        display: inline-flex; align-items: center; gap: 8px;
+        max-width: 220px; color: inherit; text-decoration: none;
+        font-weight: 600; word-break: break-word;
+      }
+      .wc-file-link:hover { text-decoration: underline; }
+      .wc-file-caption { margin-top: 7px; white-space: pre-wrap; }
 
       /* Timestamp & Status */
       .wc-time-row {
@@ -404,6 +411,7 @@
         display: none; align-items: center; gap: 10px;
       }
       #wc-preview-bar img { height: 44px; border-radius: 6px; }
+      #wc-preview-bar img[hidden] { display: none; }
       #wc-preview-bar span {
         font-size: 11px; color: var(--wc-text-muted); flex: 1;
         overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -655,12 +663,12 @@
 
         <div id="wc-input-bar">
           <textarea id="wc-text-input" placeholder="Type a message…" rows="1"></textarea>
-          <label class="wc-icon-btn" for="wc-file-input" title="Attach image">
+          <label class="wc-icon-btn" for="wc-file-input" title="Attach file">
             <svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
             </svg>
           </label>
-          <input type="file" id="wc-file-input" accept="image/*" style="display:none">
+          <input type="file" id="wc-file-input" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip" style="display:none">
           <button id="wc-send-btn" class="wc-icon-btn" title="Send">
             <svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
@@ -756,9 +764,20 @@
     fileInput.addEventListener('change', () => {
       const file = fileInput.files[0];
       if (!file) return;
+      if (file.size > 10 * 1024 * 1024) {
+        clearPreview();
+        alert('Files must be 10 MB or smaller.');
+        return;
+      }
       uploadPreview = file;
-      const url = URL.createObjectURL(file);
-      document.getElementById('wc-preview-img').src = url;
+      const previewImg = document.getElementById('wc-preview-img');
+      if (file.type.startsWith('image/')) {
+        previewImg.src = URL.createObjectURL(file);
+        previewImg.hidden = false;
+      } else {
+        previewImg.removeAttribute('src');
+        previewImg.hidden = true;
+      }
       document.getElementById('wc-preview-name').textContent = file.name;
       document.getElementById('wc-preview-bar').style.display = 'flex';
     });
@@ -791,6 +810,9 @@
   function clearPreview() {
     uploadPreview = null;
     document.getElementById('wc-file-input').value = '';
+    const previewImg = document.getElementById('wc-preview-img');
+    previewImg.removeAttribute('src');
+    previewImg.hidden = false;
     document.getElementById('wc-preview-bar').style.display = 'none';
   }
 
@@ -979,7 +1001,11 @@
       const fd = new FormData();
       fd.append('action', 'send_message');
       fd.append('session_id', sessionId);
-      fd.append('image', uploadPreview);
+      fd.append('file', uploadPreview);
+      const caption = textInput.value.trim();
+      if (caption) fd.append('message', caption);
+      textInput.value = '';
+      textInput.style.height = 'auto';
       clearPreview();
       playSend();
       animateSendBtn();
@@ -1130,6 +1156,12 @@
 
     if (msg.message_type === 'image' && (msg.file_url || msg.file_path)) {
       content = `<img src="${msg.file_url || `${BASE_URL}/${msg.file_path}`}" alt="${escHtml(msg.file_name || 'image')}" loading="lazy">`;
+      if (msg.message) content += `<div class="wc-file-caption">${escHtml(msg.message).replace(/\n/g, '<br>')}</div>`;
+    } else if (msg.message_type === 'file' && (msg.file_url || msg.file_path)) {
+      const fileUrl = msg.file_url || `${BASE_URL}/${msg.file_path}`;
+      const fileName = escHtml(msg.file_name || 'Download file');
+      content = `<a class="wc-file-link" href="${escHtml(fileUrl)}" target="_blank" rel="noopener" download>📎 ${fileName}</a>`;
+      if (msg.message) content += `<div class="wc-file-caption">${escHtml(msg.message).replace(/\n/g, '<br>')}</div>`;
     } else {
       const rawMsg = msg.message || '';
       const emojiRegex = /^(\s*[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F191}-\u{1F251}\u{1F004}\u{1F0CF}\u{1F170}-\u{1F171}\u{1F17E}-\u{1F17F}\u{1F18E}\u{3030}\u{303D}\u{2139}\u{2122}\u{3297}\u{3299}\u{1F1E6}-\u{1F1FF}]\s*)+$/u;

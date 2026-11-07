@@ -401,6 +401,25 @@
             object-fit: cover;
         }
 
+        .chat-file-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            color: inherit;
+            font-weight: 600;
+            word-break: break-word;
+            text-decoration: none;
+        }
+
+        .chat-file-link:hover {
+            text-decoration: underline;
+        }
+
+        .file-caption {
+            margin-top: 7px;
+            white-space: pre-wrap;
+        }
+
         /* Time label shown below last bubble in a group */
         .msg-time {
             font-size: 11px;
@@ -633,6 +652,16 @@
             max-height: 100px;
             border-radius: 8px;
         }
+
+        #file-preview-name {
+            display: none;
+            max-width: 180px;
+            color: var(--ios-text);
+            font-size: 14px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
         .remove-preview {
             position: absolute;
             top: -8px;
@@ -727,6 +756,7 @@
             <div class="preview-card">
                 <button class="remove-preview">&times;</button>
                 <img id="image-preview" src="" alt="Selected Image">
+                <span id="file-preview-name"></span>
             </div>
         </div>
 
@@ -737,7 +767,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
                 </svg>
             </button>
-            <input type="file" id="file-input" accept="image/*" style="display: none">
+            <input type="file" id="file-input" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip" style="display: none">
             
             <div class="input-container">
                 <textarea id="message-input" placeholder="iMessage" rows="1"></textarea>
@@ -784,6 +814,7 @@
         const fileInput = document.getElementById('file-input');
         const previewOverlay = document.getElementById('preview-overlay');
         const imagePreview = document.getElementById('image-preview');
+        const filePreviewName = document.getElementById('file-preview-name');
         const removePreview = document.querySelector('.remove-preview');
         const newMsgPill = document.getElementById('new-msg-pill');
 
@@ -843,10 +874,11 @@
             }
         }
 
-        async function apiUpload(file) {
+        async function apiUpload(file, caption = '') {
             const formData = new FormData();
             formData.append('action', 'send_message');
-            formData.append('image', file);
+            formData.append('file', file);
+            if (caption) formData.append('message', caption);
             if (sessionId) formData.append('session_id', sessionId);
 
             try {
@@ -923,8 +955,10 @@
 
             let res;
             if (uploadFile) {
-                res = await apiUpload(uploadFile);
+                res = await apiUpload(uploadFile, text);
                 clearPreview();
+                messageInput.value = '';
+                messageInput.style.height = 'auto';
             } else {
                 res = await apiFetch('send_message', { message: text });
                 messageInput.value = '';
@@ -978,6 +1012,10 @@
         function clearPreview() {
             uploadFile = null;
             fileInput.value = '';
+            imagePreview.removeAttribute('src');
+            imagePreview.style.display = 'block';
+            filePreviewName.textContent = '';
+            filePreviewName.style.display = 'none';
             previewOverlay.style.display = 'none';
             updateSendButton();
         }
@@ -1170,6 +1208,12 @@
                         const imageUrl = msg.file_url || msg.file_path || '';
                         const escapedSrc = imageUrl.replace(/'/g, "\\'");
                         content = `<img src="${imageUrl}" alt="Image" onclick="openLightbox('${escapedSrc}')">`;
+                        if (msg.message) content += `<div class="file-caption">${formatMessage(msg.message)}</div>`;
+                    } else if (msg.message_type === 'file' && (msg.file_url || msg.file_path)) {
+                        const fileUrl = msg.file_url || msg.file_path || '';
+                        const fileName = formatMessage(msg.file_name || 'Download file');
+                        content = `<a class="chat-file-link" href="${escapeAttribute(fileUrl)}" target="_blank" rel="noopener" download>📎 ${fileName}</a>`;
+                        if (msg.message) content += `<div class="file-caption">${formatMessage(msg.message)}</div>`;
                     } else {
                         if (isEmojiOnly(msg.message)) extraClass = ' emoji-only';
                         content = formatMessage(msg.message);
@@ -1219,6 +1263,12 @@
                     '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#039;', '"': '&quot;'
                 }[character]))
                 .replace(/\n/g, '<br>');
+        }
+
+        function escapeAttribute(value) {
+            return String(value || '').replace(/[&<>"']/g, character => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+            }[character]));
         }
 
         function applyGroupingStyles() {
@@ -1302,14 +1352,31 @@
         fileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
+                if (file.size > 10 * 1024 * 1024) {
+                    clearPreview();
+                    alert('Files must be 10 MB or smaller.');
+                    return;
+                }
                 uploadFile = file;
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    imagePreview.src = e.target.result;
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        imagePreview.src = e.target.result;
+                        imagePreview.style.display = 'block';
+                        filePreviewName.textContent = '';
+                        filePreviewName.style.display = 'none';
+                        previewOverlay.style.display = 'flex';
+                        updateSendButton();
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    imagePreview.removeAttribute('src');
+                    imagePreview.style.display = 'none';
+                    filePreviewName.textContent = file.name;
+                    filePreviewName.style.display = 'block';
                     previewOverlay.style.display = 'flex';
                     updateSendButton();
-                };
-                reader.readAsDataURL(file);
+                }
             }
         });
 

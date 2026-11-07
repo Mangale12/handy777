@@ -14,7 +14,14 @@ class ChatController extends Controller
     public function index(Request $request)
     {
         $this->touchAgentPresence();
-        $sessions = $this->sessionQuery()->get();
+        $status = in_array($request->query('status', 'open'), ['open', 'closed', 'all'], true)
+            ? $request->query('status', 'open')
+            : 'open';
+        $sessionsQuery = $this->sessionQuery();
+        if ($status !== 'all') {
+            $sessionsQuery->where('s.status', $status);
+        }
+        $sessions = $sessionsQuery->get();
         $selectedSession = null;
         $messages = collect();
 
@@ -22,6 +29,14 @@ class ChatController extends Controller
             $selectedSession = $this->findSession($request->query('session'));
 
             if ($selectedSession) {
+                if (!$sessions->contains('session_id', $selectedSession->session_id)) {
+                    $selectedSummary = $this->sessionQuery()
+                        ->where('s.session_id', $selectedSession->session_id)
+                        ->first();
+                    if ($selectedSummary) {
+                        $sessions->prepend($selectedSummary);
+                    }
+                }
                 $this->markSessionAsRead($selectedSession->session_id);
                 $messages = $this->messageCollection($selectedSession->session_id);
             }
@@ -40,6 +55,7 @@ class ChatController extends Controller
             'sessions' => $sessions,
             'selectedSession' => $selectedSession,
             'messages' => $messages,
+            'status' => $status,
         ]);
     }
 
@@ -56,7 +72,8 @@ class ChatController extends Controller
             $search = '%' . $request->input('search') . '%';
             $query->where(function ($builder) use ($search) {
                 $builder->where('s.visitor_name', 'like', $search)
-                    ->orWhere('s.visitor_email', 'like', $search);
+                    ->orWhere('s.visitor_email', 'like', $search)
+                    ->orWhere('s.ip_address', 'like', $search);
             });
         }
 
@@ -85,18 +102,44 @@ class ChatController extends Controller
         }
 
         $validated = $request->validate([
-            'message' => ['required', 'string', 'max:5000'],
+            'message' => ['nullable', 'string', 'max:5000'],
+            'file' => ['nullable', 'file', 'max:10240', 'mimes:jpg,jpeg,png,gif,webp,pdf,doc,docx,xls,xlsx,csv,txt,zip'],
         ]);
 
-        $messageId = DB::table('chat_messages')->insertGetId([
+        $messageText = trim((string) ($validated['message'] ?? ''));
+        if ($messageText === '' && !$request->hasFile('file')) {
+            return response()->json(['message' => 'Write a message or attach a file.'], 422);
+        }
+
+        $messageData = [
+            'message_type' => 'text',
+            'message' => $messageText !== '' ? $messageText : null,
+        ];
+
+        if ($request->hasFile('file')) {
+            $file = $request->file('file');
+            $fileName = \Illuminate\Support\Str::random(32) . '.' . strtolower($file->getClientOriginalExtension());
+            $uploadDirectory = public_path('uploads');
+
+            if (!is_dir($uploadDirectory)) {
+                mkdir($uploadDirectory, 0755, true);
+            }
+
+            // Read the MIME type while the uploaded temporary file still exists.
+            $mimeType = (string) $file->getMimeType();
+            $file->move($uploadDirectory, $fileName);
+            $messageData['message_type'] = strpos($mimeType, 'image/') === 0 ? 'image' : 'file';
+            $messageData['file_path'] = 'uploads/' . $fileName;
+            $messageData['file_name'] = $file->getClientOriginalName();
+        }
+
+        $messageId = DB::table('chat_messages')->insertGetId(array_merge([
             'session_id' => $session->session_id,
             'sender' => 'agent',
-            'message_type' => 'text',
-            'message' => trim($validated['message']),
             'status' => 'sent',
             'is_read' => 0,
             'created_at' => now(),
-        ]);
+        ], $messageData));
 
         DB::table('chat_sessions')
             ->where('session_id', $session->session_id)
@@ -116,6 +159,72 @@ class ChatController extends Controller
         return response()->json(['success' => true]);
     }
 
+    public function toggleBlock(string $sessionId): JsonResponse
+    {
+        $session = $this->findSessionOrFail($sessionId);
+        $blocked = !(bool) $session->is_blocked;
+
+        DB::table('chat_sessions')
+            ->where('session_id', $session->session_id)
+            ->update([
+                'is_blocked' => $blocked ? 1 : 0,
+                'last_activity' => now(),
+            ]);
+
+        DB::table('chat_messages')->insert([
+            'session_id' => $session->session_id,
+            'sender' => 'system',
+            'message_type' => 'text',
+            'message' => $blocked ? 'Chat blocked by support.' : 'Chat unblocked by support.',
+            'status' => 'sent',
+            'is_read' => 1,
+            'created_at' => now(),
+        ]);
+
+        return response()->json([
+            'session' => $this->sessionQuery()->where('s.session_id', $session->session_id)->first(),
+        ]);
+    }
+
+    public function toggleClose(string $sessionId): JsonResponse
+    {
+        $session = $this->findSessionOrFail($sessionId);
+        $closed = $session->status !== 'closed';
+
+        DB::table('chat_sessions')
+            ->where('session_id', $session->session_id)
+            ->update([
+                'status' => $closed ? 'closed' : 'open',
+                'last_activity' => now(),
+            ]);
+
+        DB::table('chat_messages')->insert([
+            'session_id' => $session->session_id,
+            'sender' => 'system',
+            'message_type' => 'text',
+            'message' => $closed ? 'Chat closed by support.' : 'Chat reopened by support.',
+            'status' => 'sent',
+            'is_read' => 1,
+            'created_at' => now(),
+        ]);
+
+        return response()->json([
+            'session' => $this->sessionQuery()->where('s.session_id', $session->session_id)->first(),
+        ]);
+    }
+
+    public function destroySession(string $sessionId): JsonResponse
+    {
+        $session = $this->findSessionOrFail($sessionId);
+
+        DB::transaction(function () use ($session) {
+            DB::table('chat_messages')->where('session_id', $session->session_id)->delete();
+            DB::table('chat_sessions')->where('session_id', $session->session_id)->delete();
+        });
+
+        return response()->json(['success' => true]);
+    }
+
     private function sessionQuery()
     {
         return DB::table('chat_sessions as s')
@@ -123,9 +232,12 @@ class ChatController extends Controller
                 's.session_id',
                 's.visitor_name',
                 's.visitor_email',
+                's.ip_address',
                 's.status',
                 's.is_blocked',
                 's.is_read',
+                's.is_viewing',
+                's.is_typing',
                 's.last_activity',
                 's.last_presence',
                 's.created_at',
@@ -200,6 +312,11 @@ class ChatController extends Controller
                     ->where('m.sender', 'visitor')
                     ->where('m.is_read', 0);
             }, 'unread_count')
+            ->selectSub(function ($query) {
+                $query->from('chat_messages as m')
+                    ->selectRaw('COUNT(*)')
+                    ->whereColumn('m.session_id', 's.session_id');
+            }, 'message_count')
             ->selectRaw("(TIMESTAMPDIFF(SECOND, COALESCE(s.last_presence, s.last_activity), NOW()) < 10) as visitor_online")
             ->orderByRaw('COALESCE(s.last_activity, s.created_at) DESC');
     }
@@ -242,7 +359,7 @@ class ChatController extends Controller
     {
         $data = (array) $message;
         $data['file_url'] = !empty($data['file_path'])
-            ? asset(ltrim($data['file_path'], '/'))
+            ? asset('public/' . ltrim($data['file_path'], '/'))
             : null;
 
         return $data;

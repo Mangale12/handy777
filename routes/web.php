@@ -360,6 +360,9 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/admin/chat/{sessionId}/messages', [App\Http\Controllers\Admin\ChatController::class, 'messages'])->name('admin.chat.messages');
     Route::post('/admin/chat/{sessionId}/messages', [App\Http\Controllers\Admin\ChatController::class, 'storeMessage'])->name('admin.chat.messages.store');
     Route::post('/admin/chat/{sessionId}/read', [App\Http\Controllers\Admin\ChatController::class, 'markRead'])->name('admin.chat.read');
+    Route::post('/admin/chat/{sessionId}/block', [App\Http\Controllers\Admin\ChatController::class, 'toggleBlock'])->name('admin.chat.block');
+    Route::post('/admin/chat/{sessionId}/close', [App\Http\Controllers\Admin\ChatController::class, 'toggleClose'])->name('admin.chat.close');
+    Route::delete('/admin/chat/{sessionId}', [App\Http\Controllers\Admin\ChatController::class, 'destroySession'])->name('admin.chat.destroy');
 });
 Route::get('cashier/dashboard',[CashierController::class,'index'])->name('cashier.index')->middleware('cashier');
 Route::get('/logout',[AdminController::class,'logout'])->name('logout');
