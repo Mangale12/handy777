@@ -112,6 +112,28 @@
             z-index: 2;
         }
 
+        .chat-home-link {
+            position: absolute;
+            top: calc(var(--safe-top) + 14px);
+            left: 12px;
+            z-index: 2;
+            min-height: 30px;
+            padding: 6px 10px;
+            border: 1px solid rgba(255,255,255,.4);
+            border-radius: 999px;
+            color: #fff;
+            background: rgba(4, 17, 66, .2);
+            font: inherit;
+            font-size: 11px;
+            font-weight: 700;
+            text-decoration: none;
+            backdrop-filter: blur(8px);
+        }
+
+        .chat-home-link:active {
+            transform: scale(.96);
+        }
+
         .chat-logout-btn {
             min-height: 30px;
             padding: 6px 10px;
@@ -439,6 +461,22 @@
             transform: translateY(0);
         }
 
+        /* WhatsApp-style outgoing message state: one check = sent, two =
+           delivered, blue two-check = seen. */
+        .message-ticks {
+            display: inline-block;
+            margin-left: 8px;
+            color: rgba(255,255,255,.78);
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: -3px;
+            line-height: 1;
+            vertical-align: middle;
+        }
+
+        .message-ticks.delivered { color: rgba(255,255,255,.96); }
+        .message-ticks.seen { color: #62d9ff; }
+
         /* Tap on a bubble to reveal timestamp */
         .msg-row.show-time + .msg-time {
             opacity: 1;
@@ -707,6 +745,25 @@
             align-items: center;
             gap: 6px;
         }
+
+        #chat-error {
+            position: absolute;
+            right: 14px;
+            bottom: calc(var(--safe-bottom) + 64px);
+            left: 14px;
+            z-index: 40;
+            display: none;
+            padding: 9px 12px;
+            border: 1px solid rgba(255, 59, 48, .2);
+            border-radius: 10px;
+            color: #a51d18;
+            background: rgba(255, 241, 240, .96);
+            font-size: 12px;
+            text-align: center;
+            box-shadow: 0 5px 18px rgba(0,0,0,.12);
+        }
+
+        #chat-error.show { display: block; }
     </style>
 </head>
 <body>
@@ -723,6 +780,7 @@
         </div>
 
         <header>
+            <a class="chat-home-link" href="{{ route('homePage') }}" aria-label="Back to home">← Home</a>
             <form class="chat-logout-form" id="chat-logout-form" method="POST" action="{{ route('chat.logout') }}">
                 @csrf
                 <button class="chat-logout-btn" type="submit">Log out</button>
@@ -767,7 +825,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
                 </svg>
             </button>
-            <input type="file" id="file-input" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip" style="display: none">
+            <input type="file" id="file-input" accept="image/*,.heic,.heif,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip" style="display: none">
             
             <div class="input-container">
                 <textarea id="message-input" placeholder="iMessage" rows="1"></textarea>
@@ -779,6 +837,7 @@
                 </svg>
             </button>
         </footer>
+        <div id="chat-error" role="alert"></div>
     </div>
 
     <!-- Lightbox -->
@@ -817,6 +876,8 @@
         const filePreviewName = document.getElementById('file-preview-name');
         const removePreview = document.querySelector('.remove-preview');
         const newMsgPill = document.getElementById('new-msg-pill');
+        const chatError = document.getElementById('chat-error');
+        let chatErrorTimer = null;
 
         // ── Initialization ──
         function init() {
@@ -864,7 +925,7 @@
                     : { error: `Chat API returned HTTP ${response.status}` };
 
                 if (!response.ok && !result.error) {
-                    result.error = `Chat API returned HTTP ${response.status}`;
+                    result.error = result.message || `Chat API returned HTTP ${response.status}`;
                 }
 
                 return result;
@@ -892,10 +953,13 @@
                     body: formData
                 });
                 const contentType = response.headers.get('content-type') || '';
-                if (!contentType.includes('application/json')) {
-                    return { error: `Chat API returned HTTP ${response.status}` };
+                const result = contentType.includes('application/json')
+                    ? await response.json()
+                    : {};
+                if (!response.ok && !result.error) {
+                    result.error = result.message || `File upload failed (HTTP ${response.status}).`;
                 }
-                return await response.json();
+                return result;
             } catch (error) {
                 console.error('Upload Error:', error);
                 return { error: 'Upload failed' };
@@ -956,25 +1020,43 @@
             let res;
             if (uploadFile) {
                 res = await apiUpload(uploadFile, text);
-                clearPreview();
-                messageInput.value = '';
-                messageInput.style.height = 'auto';
             } else {
                 res = await apiFetch('send_message', { message: text });
-                messageInput.value = '';
-                messageInput.style.height = 'auto';
             }
 
             if (res.success) {
+                if (uploadFile) clearPreview();
+                messageInput.value = '';
+                messageInput.style.height = 'auto';
                 playSound('send');
                 updateSendButton();
                 pollMessages();
                 return;
             }
 
+            showChatError(getResponseError(res, 'The file could not be sent.'));
+
             if (isSessionNotFoundError(res)) {
                 resetToWelcomeScreen();
             }
+        }
+
+        function getResponseError(res, fallback) {
+            if (!res) return fallback;
+            if (typeof res.error === 'string' && res.error.trim()) return res.error;
+            if (typeof res.message === 'string' && res.message.trim()) return res.message;
+            if (res.errors && typeof res.errors === 'object') {
+                const firstError = Object.values(res.errors).flat()[0];
+                if (firstError) return String(firstError);
+            }
+            return fallback;
+        }
+
+        function showChatError(message) {
+            chatError.textContent = message;
+            chatError.classList.add('show');
+            clearTimeout(chatErrorTimer);
+            chatErrorTimer = setTimeout(() => chatError.classList.remove('show'), 5000);
         }
 
         function isSessionNotFoundError(res) {
@@ -1116,6 +1198,8 @@
                     }
                 }
             }
+
+            updateMessageStatuses(res.status_updates);
             
             if (res.agent) {
                 updateAgentStatus(res.agent);
@@ -1162,6 +1246,42 @@
             document.getElementById('lightbox').classList.add('active');
         }
 
+        function messageStatusMarkup(msg) {
+            if (msg.sender !== 'visitor') return '';
+
+            const status = ['sent', 'delivered', 'seen'].includes(msg.status)
+                ? msg.status
+                : 'sent';
+            const ticks = status === 'sent' ? '✓' : '✓✓';
+            const label = status === 'seen'
+                ? 'Seen'
+                : (status === 'delivered' ? 'Delivered' : 'Sent');
+
+            return `<span class="message-ticks ${status}" title="${label}" aria-label="${label}">${ticks}</span>`;
+        }
+
+        function updateMessageStatuses(statusUpdates) {
+            if (!Array.isArray(statusUpdates)) return;
+
+            statusUpdates.forEach(update => {
+                const row = Array.from(messagesContainer.querySelectorAll('.msg-row'))
+                    .find(element => String(element.dataset.messageId) === String(update.id));
+                const ticks = row && row.querySelector('.message-ticks');
+                if (!ticks) return;
+
+                const status = ['sent', 'delivered', 'seen'].includes(update.status)
+                    ? update.status
+                    : 'sent';
+                const label = status === 'seen'
+                    ? 'Seen'
+                    : (status === 'delivered' ? 'Delivered' : 'Sent');
+                ticks.className = `message-ticks ${status}`;
+                ticks.textContent = status === 'sent' ? '✓' : '✓✓';
+                ticks.title = label;
+                ticks.setAttribute('aria-label', label);
+            });
+        }
+
         function renderMessages(history, isFirst = false) {
             // Near-bottom check BEFORE adding new nodes
             const nearBottom = isNearBottom();
@@ -1197,6 +1317,7 @@
                 row.className = `msg-row ${msg.sender}`;
                 row.dataset.sender = msg.sender;
                 row.dataset.time = msg.created_at;
+                row.dataset.messageId = msg.id;
                 if (senderChanged) row.setAttribute('data-sender-change', 'true');
 
                 if (msg.sender === 'system') {
@@ -1218,7 +1339,7 @@
                         if (isEmojiOnly(msg.message)) extraClass = ' emoji-only';
                         content = formatMessage(msg.message);
                     }
-                    row.innerHTML = `<div class="bubble${extraClass}">${content}</div>`;
+                    row.innerHTML = `<div class="bubble${extraClass}">${content}${messageStatusMarkup(msg)}</div>`;
 
                     // Tap bubble to show/hide time
                     row.addEventListener('click', () => {
@@ -1358,7 +1479,9 @@
                     return;
                 }
                 uploadFile = file;
-                if (file.type.startsWith('image/')) {
+                const previewableImage = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+                    .includes((file.type || '').toLowerCase());
+                if (previewableImage) {
                     const reader = new FileReader();
                     reader.onload = (e) => {
                         imagePreview.src = e.target.result;
@@ -1376,7 +1499,7 @@
                     filePreviewName.style.display = 'block';
                     previewOverlay.style.display = 'flex';
                     updateSendButton();
-                }
+            }
             }
         });
 

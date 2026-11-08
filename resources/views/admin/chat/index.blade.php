@@ -322,7 +322,10 @@
         .message-row.system .message-bubble { padding: 7px 12px; border-radius: 12px; color: var(--muted); background: var(--soft); font-size: 12px; }
         .message-time { margin: 4px 10px 0; color: #8994a7; font-size: 11px; }
         .message-row.agent .message-time { text-align: right; }
-        .message-status { margin-left: 6px; color: var(--blue); font-weight: 700; }
+        .message-status { display: inline-block; margin-left: 8px; color: #64748b; font-size: 12px; font-weight: 800; letter-spacing: -3px; line-height: 1; vertical-align: middle; }
+        .message-row.agent .message-status { color: rgba(255,255,255,.78); }
+        .message-row.agent .message-status.delivered { color: rgba(255,255,255,.96); }
+        .message-row.agent .message-status.seen { color: #62d9ff; }
         .message-image { display: block; max-width: 280px; max-height: 280px; border-radius: 15px; }
         .message-file { display: inline-flex; align-items: center; gap: 8px; padding: 9px 11px; border: 1px solid rgba(100, 116, 139, .2); border-radius: 10px; color: #334155; background: rgba(255, 255, 255, .7); font-size: 14px; font-weight: 650; }
         .message-file:hover { color: var(--blue); background: #fff; }
@@ -362,13 +365,31 @@
         .settings-card { padding: 13px; border: 1px solid #dbeafe; border-radius: 12px; background: #f8fbff; }
 
         .details {
+            position: relative;
             display: none;
             overflow-y: auto;
             border-left: 1px solid var(--line);
             background: #fbfcfe;
         }
         .workspace.details-open .details { display: block; }
-        .details-empty { display: grid; height: 100%; place-items: center; padding: 30px; color: var(--muted); text-align: center; }
+        .details-close {
+            position: absolute;
+            z-index: 2;
+            top: 14px;
+            right: 14px;
+            display: grid;
+            width: 36px;
+            height: 36px;
+            place-items: center;
+            border: 1px solid #dbe3ef;
+            border-radius: 50%;
+            color: #475569;
+            background: rgba(255, 255, 255, .94);
+            font-size: 24px;
+            line-height: 1;
+        }
+        .details-close:hover { color: var(--blue); background: var(--blue-soft); }
+        .details-empty { display: grid; height: 0%; place-items: center; padding: 30px; color: var(--muted); text-align: center; }
         .details-content { min-height: 100%; }
         .profile-card { padding: 25px 20px 27px; text-align: center; }
         .profile-avatar-wrap { position: relative; display: inline-block; }
@@ -447,6 +468,35 @@
             .composer { padding: 10px 12px 14px; }
             .composer-tools { display: none; }
             .sidebar-heading h1 { font-size: 29px; }
+        }
+
+        /* Keep conversation details in a right-side drawer. The details panel
+           should scroll internally, while the chat workspace stays fixed in
+           the viewport instead of creating a page-level scroll area. */
+        @media (min-width: 681px) {
+            .workspace.details-open { grid-template-columns: 430px minmax(0, 1fr); }
+            .workspace.details-open .chat-head { padding-right: 373px; }
+            .workspace.details-open .details {
+                position: fixed;
+                z-index: 30;
+                top: 85px;
+                right: 0;
+                bottom: 0;
+                width: 350px;
+                overflow-y: auto;
+                box-shadow: -10px 0 30px rgba(15, 23, 42, .14);
+            }
+        }
+
+        @media (min-width: 681px) and (max-width: 900px) {
+            .workspace.details-open { grid-template-columns: 300px minmax(0, 1fr); }
+            .workspace.details-open .details { width: min(350px, calc(100vw - 300px)); }
+        }
+
+        @media (min-width: 901px) and (max-width: 1180px) {
+            .workspace.details-open { grid-template-columns: 330px minmax(0, 1fr); }
+            .workspace.details-open .chat-head { padding-right: 313px; }
+            .workspace.details-open .details { width: 290px; }
         }
     </style>
 </head>
@@ -563,12 +613,13 @@
                         </div>
                     </div>
                     <button id="send-button" class="send" type="button" title="Send message" aria-label="Send message" disabled><svg width="21" height="21" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m4 4 16 8-16 8 3-8-3-8Zm3 8h13"></path></svg></button>
-                    <input id="chat-file-input" type="file" hidden accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip">
+                    <input id="chat-file-input" type="file" hidden accept="image/*,.heic,.heif,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip">
                 </div>
             </section>
         </main>
 
         <aside class="details">
+            <button id="details-close" class="details-close" type="button" title="Close details" aria-label="Close details">&times;</button>
             <div id="details-empty" class="details-empty"></div>
             <div id="details-content" class="details-content" hidden>
                 <section class="profile-card">
@@ -660,6 +711,7 @@
     const detailsEmpty = document.getElementById('details-empty');
     const detailsContent = document.getElementById('details-content');
     const detailsToggle = document.getElementById('details-toggle');
+    const detailsClose = document.getElementById('details-close');
 
     const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (character) => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#039;', '"': '&quot;'
@@ -738,6 +790,28 @@
     function setError(message = '') {
         errorBox.textContent = message;
         errorBox.classList.toggle('show', Boolean(message));
+    }
+
+    function responseError(data, fallback) {
+        if (data && typeof data.message === 'string' && data.message.trim()) return data.message;
+        if (data && typeof data.error === 'string' && data.error.trim()) return data.error;
+        if (data && data.errors && typeof data.errors === 'object') {
+            const firstError = Object.values(data.errors).flat()[0];
+            if (firstError) return String(firstError);
+        }
+        return fallback;
+    }
+
+    async function readJsonResponse(response, fallback) {
+        const contentType = response.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) {
+            throw new Error(fallback);
+        }
+        const data = contentType.includes('application/json')
+            ? await response.json()
+            : {};
+        if (!response.ok) throw new Error(responseError(data, fallback));
+        return data;
     }
 
     function sessionFor(id = state.activeId) {
@@ -881,9 +955,16 @@
             timestamp.textContent = fullTime(message.created_at);
             if (message.sender === 'agent') {
                 const status = document.createElement('span');
-                status.className = 'message-status';
-                status.textContent = message.status === 'seen' ? 'Seen' : 'Sent';
-                timestamp.appendChild(status);
+                const messageStatus = ['sent', 'delivered', 'seen'].includes(message.status)
+                    ? message.status
+                    : 'sent';
+                status.className = `message-status ${messageStatus}`;
+                status.textContent = messageStatus === 'sent' ? '✓' : '✓✓';
+                status.title = messageStatus === 'seen'
+                    ? 'Seen'
+                    : (messageStatus === 'delivered' ? 'Delivered' : 'Sent');
+                status.setAttribute('aria-label', status.title);
+                bubble.appendChild(status);
             }
             content.appendChild(bubble);
             content.appendChild(timestamp);
@@ -1008,8 +1089,9 @@
                 headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf },
                 body,
             });
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.message || 'Message could not be sent.');
+            const data = await readJsonResponse(response, file
+                ? 'File could not be sent. Check the file type and size, then try again.'
+                : 'Message could not be sent.');
             input.value = '';
             state.pendingFile = null;
             fileInput.value = '';
@@ -1088,8 +1170,8 @@
         fileInput.click();
     }
 
-    addFileButton.addEventListener('click', () => chooseFile('image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip'));
-    imageButton.addEventListener('click', () => chooseFile('image/*'));
+    addFileButton.addEventListener('click', () => chooseFile('image/*,.heic,.heif,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip'));
+    imageButton.addEventListener('click', () => chooseFile('image/*,.heic,.heif'));
     fileButton.addEventListener('click', () => chooseFile('.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip'));
     fileInput.addEventListener('change', event => {
         const file = event.target.files[0];
@@ -1131,6 +1213,7 @@
         refreshSessions();
     }));
     detailsToggle.addEventListener('click', () => setDetailsOpen(!state.detailsOpen));
+    detailsClose.addEventListener('click', () => setDetailsOpen(false));
     document.querySelector('.chat-head').addEventListener('click', event => {
         if (window.innerWidth <= 680 && event.target.closest('.chat-head') === event.currentTarget && !event.target.closest('button')) chat.classList.remove('open');
     });

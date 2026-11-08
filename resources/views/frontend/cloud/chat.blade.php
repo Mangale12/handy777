@@ -15,6 +15,8 @@
         .shell::before { position:absolute; z-index:0; inset:0; content:""; background-image:var(--background-image); background-position:center; background-size:cover; opacity:.13; pointer-events:none; }
         .shell > * { position:relative; z-index:1; }
         .hero { padding:34px 34px 28px; color:#fff; background:linear-gradient(135deg,rgba(23,31,61,.94),rgba(45,44,113,.94) 58%,rgba(111,54,166,.92)),var(--background-image); background-position:center center; background-size:cover; text-align:center; }
+        .home-link { display:inline-flex; align-items:center; gap:6px; margin-bottom:18px; padding:7px 12px; border:1px solid rgba(255,255,255,.4); border-radius:999px; color:#fff; background:rgba(255,255,255,.12); font-size:12px; font-weight:750; text-decoration:none; }
+        .home-link:hover { background:rgba(255,255,255,.2); }
         .brand { display:grid; width:58px; height:58px; margin:0 auto 28px; padding:4px; place-items:center; border:1px solid rgba(255,255,255,.45); border-radius:18px; background:rgba(255,255,255,.16); box-shadow:inset 0 1px rgba(255,255,255,.3),0 8px 22px rgba(36,107,254,.2); overflow:hidden; }
         .brand img { width:100%; height:100%; border-radius:13px; object-fit:cover; }
         h1 { margin:0 0 10px; font-size:30px; letter-spacing:-.04em; }
@@ -43,6 +45,7 @@
 <body>
     <main class="shell" style="--background-image: url('{{ asset('images/abgaming.jpeg') }}');">
         <section class="hero">
+            <a class="home-link" href="{{ route('homePage') }}" aria-label="Back to home">← Home</a>
             <div class="brand" aria-hidden="true"><img src="{{ asset('images/abgaming.jpeg') }}" alt="AB Gaming"></div>
             <h1>Welcome to support</h1>
             <p>Start a private conversation with the AB Gaming support team.</p>

@@ -38,6 +38,7 @@ class ChatController extends Controller
                     }
                 }
                 $this->markSessionAsRead($selectedSession->session_id);
+                $this->syncAgentMessageStatuses($selectedSession->session_id);
                 $messages = $this->messageCollection($selectedSession->session_id);
             }
         }
@@ -48,6 +49,7 @@ class ChatController extends Controller
         if (!$selectedSession && $sessions->isNotEmpty()) {
             $selectedSession = $sessions->first();
             $this->markSessionAsRead($selectedSession->session_id);
+            $this->syncAgentMessageStatuses($selectedSession->session_id);
             $messages = $this->messageCollection($selectedSession->session_id);
         }
 
@@ -85,6 +87,7 @@ class ChatController extends Controller
         $session = $this->findSessionOrFail($sessionId);
         $this->touchAgentPresence($session->session_id);
         $this->markSessionAsRead($session->session_id);
+        $this->syncAgentMessageStatuses($session->session_id);
 
         return response()->json([
             'session' => $this->sessionQuery()->where('s.session_id', $session->session_id)->first(),
@@ -103,13 +106,16 @@ class ChatController extends Controller
 
         $validated = $request->validate([
             'message' => ['nullable', 'string', 'max:5000'],
-            'file' => ['nullable', 'file', 'max:10240', 'mimes:jpg,jpeg,png,gif,webp,pdf,doc,docx,xls,xlsx,csv,txt,zip'],
+            'file' => ['nullable', 'file', 'max:10240', 'mimes:jpg,jpeg,png,gif,webp,heic,heif,pdf,doc,docx,xls,xlsx,csv,txt,zip'],
         ]);
 
         $messageText = trim((string) ($validated['message'] ?? ''));
         if ($messageText === '' && !$request->hasFile('file')) {
             return response()->json(['message' => 'Write a message or attach a file.'], 422);
         }
+
+        $status = $this->visitorIsViewing($session) ? 'seen'
+            : ($this->visitorIsOnline($session) ? 'delivered' : 'sent');
 
         $messageData = [
             'message_type' => 'text',
@@ -121,14 +127,22 @@ class ChatController extends Controller
             $fileName = \Illuminate\Support\Str::random(32) . '.' . strtolower($file->getClientOriginalExtension());
             $uploadDirectory = public_path('uploads');
 
-            if (!is_dir($uploadDirectory)) {
-                mkdir($uploadDirectory, 0755, true);
+            if (!is_dir($uploadDirectory) && !mkdir($uploadDirectory, 0755, true)) {
+                return response()->json(['message' => 'File upload failed: upload folder is not writable.'], 500);
             }
 
             // Read the MIME type while the uploaded temporary file still exists.
             $mimeType = (string) $file->getMimeType();
-            $file->move($uploadDirectory, $fileName);
-            $messageData['message_type'] = strpos($mimeType, 'image/') === 0 ? 'image' : 'file';
+            try {
+                $file->move($uploadDirectory, $fileName);
+            } catch (\Throwable $exception) {
+                report($exception);
+                return response()->json(['message' => 'File upload failed. Please try again.'], 500);
+            }
+            if (!is_file($uploadDirectory . DIRECTORY_SEPARATOR . $fileName)) {
+                return response()->json(['message' => 'File upload failed. Please try again.'], 500);
+            }
+            $messageData['message_type'] = $this->isInlineImageMime($mimeType) ? 'image' : 'file';
             $messageData['file_path'] = 'uploads/' . $fileName;
             $messageData['file_name'] = $file->getClientOriginalName();
         }
@@ -136,7 +150,7 @@ class ChatController extends Controller
         $messageId = DB::table('chat_messages')->insertGetId(array_merge([
             'session_id' => $session->session_id,
             'sender' => 'agent',
-            'status' => 'sent',
+            'status' => $status,
             'is_read' => 0,
             'created_at' => now(),
         ], $messageData));
@@ -365,6 +379,16 @@ class ChatController extends Controller
         return $data;
     }
 
+    private function isInlineImageMime(string $mimeType): bool
+    {
+        return in_array(strtolower($mimeType), [
+            'image/jpeg',
+            'image/png',
+            'image/gif',
+            'image/webp',
+        ], true);
+    }
+
     private function markSessionAsRead(string $sessionId): void
     {
         DB::table('chat_sessions')
@@ -378,6 +402,47 @@ class ChatController extends Controller
                 'is_read' => 1,
                 'status' => 'seen',
             ]);
+    }
+
+    private function visitorIsOnline($session): bool
+    {
+        return !empty($session->last_presence)
+            && strtotime((string) $session->last_presence) > now()->subSeconds(10)->timestamp;
+    }
+
+    private function visitorIsViewing($session): bool
+    {
+        return (bool) $session->is_viewing && $this->visitorIsOnline($session);
+    }
+
+    /**
+     * Promote support messages as the visitor comes online or opens the chat.
+     * Statuses only move forward: sent -> delivered -> seen.
+     */
+    private function syncAgentMessageStatuses(string $sessionId): void
+    {
+        $session = $this->findSession($sessionId);
+        if (!$session) {
+            return;
+        }
+
+        if ($this->visitorIsViewing($session)) {
+            DB::table('chat_messages')
+                ->where('session_id', $sessionId)
+                ->where('sender', 'agent')
+                ->where('status', '!=', 'seen')
+                ->update(['status' => 'seen', 'is_read' => 1]);
+
+            return;
+        }
+
+        if ($this->visitorIsOnline($session)) {
+            DB::table('chat_messages')
+                ->where('session_id', $sessionId)
+                ->where('sender', 'agent')
+                ->where('status', 'sent')
+                ->update(['status' => 'delivered']);
+        }
     }
 
     private function touchAgentPresence(?string $sessionId = null): void

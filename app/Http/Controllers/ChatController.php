@@ -163,22 +163,33 @@ class ChatController extends Controller
 
         if ($file) {
             $fileField = $request->hasFile('file') ? 'file' : 'image';
+            $allowedChatTypes = 'jpg,jpeg,png,gif,webp,heic,heif,pdf,doc,docx,xls,xlsx,csv,txt,zip';
             $fileRules = [
-                'file' => ['file', 'max:10240', 'mimes:jpg,jpeg,png,gif,webp,pdf,doc,docx,xls,xlsx,csv,txt,zip'],
-                'image' => ['image', 'mimes:jpg,jpeg,png,gif,webp', 'max:10240'],
+                'file' => ['file', 'max:10240', 'mimes:' . $allowedChatTypes],
+                // Keep the legacy `image` field working, while allowing the
+                // HEIC/HEIF files produced by iPhones.
+                'image' => ['file', 'max:10240', 'mimes:jpg,jpeg,png,gif,webp,heic,heif'],
             ];
             $request->validate([$fileField => $fileRules[$fileField]]);
 
             $uploadDirectory = public_path('uploads');
-            if (!is_dir($uploadDirectory)) {
-                mkdir($uploadDirectory, 0755, true);
+            if (!is_dir($uploadDirectory) && !mkdir($uploadDirectory, 0755, true)) {
+                return response()->json(['error' => 'File upload failed: upload folder is not writable.'], 500);
             }
 
             $fileName = Str::random(32) . '.' . strtolower($file->getClientOriginalExtension());
             // Read the MIME type while the uploaded temporary file still exists.
             $mimeType = (string) $file->getMimeType();
-            $file->move($uploadDirectory, $fileName);
-            $message['message_type'] = strpos($mimeType, 'image/') === 0
+            try {
+                $file->move($uploadDirectory, $fileName);
+            } catch (\Throwable $exception) {
+                report($exception);
+                return response()->json(['error' => 'File upload failed. Please try again.'], 500);
+            }
+            if (!is_file($uploadDirectory . DIRECTORY_SEPARATOR . $fileName)) {
+                return response()->json(['error' => 'File upload failed. Please try again.'], 500);
+            }
+            $message['message_type'] = $this->isInlineImageMime($mimeType)
                 ? 'image'
                 : 'file';
             $message['file_path'] = 'uploads/' . $fileName;
@@ -226,6 +237,11 @@ class ChatController extends Controller
         $beforeId = max(0, (int) $request->input('before_id', 0));
         $limit = max(0, (int) $request->input('limit', 0));
 
+        // A message can be sent while support is offline and become delivered
+        // later. Keep the persisted status in sync before returning the poll
+        // response so the visitor's ticks reflect the recipient's presence.
+        $this->syncVisitorMessageStatuses($session->session_id);
+
         DB::table('chat_messages')
             ->where('session_id', $session->session_id)
             ->where('sender', 'agent')
@@ -262,12 +278,22 @@ class ChatController extends Controller
         }
         $messages = $messages->map(fn ($message) => $this->formatMessage($message));
 
+        // Status changes do not change a message's id, so they must be sent
+        // separately when the client is polling with `since`.
+        $statusUpdates = DB::table('chat_messages')
+            ->select(['id', 'status'])
+            ->where('session_id', $session->session_id)
+            ->where('sender', 'visitor')
+            ->orderBy('id')
+            ->get();
+
         $freshSession = DB::table('chat_sessions')
             ->where('session_id', $session->session_id)
             ->first();
 
         return response()->json([
             'messages' => $messages,
+            'status_updates' => $statusUpdates,
             'session' => $freshSession,
             'agent' => [
                 'online' => $this->adminIsOnline(),
@@ -299,6 +325,8 @@ class ChatController extends Controller
                 ->where('status', '!=', 'seen')
                 ->update(['status' => 'seen']);
         }
+
+        $this->syncVisitorMessageStatuses($session->session_id);
 
         return response()->json(['success' => true]);
     }
@@ -391,6 +419,16 @@ class ChatController extends Controller
         return $data;
     }
 
+    private function isInlineImageMime(string $mimeType): bool
+    {
+        return in_array(strtolower($mimeType), [
+            'image/jpeg',
+            'image/png',
+            'image/gif',
+            'image/webp',
+        ], true);
+    }
+
     private function adminIsOnline(): bool
     {
         if (!Schema::hasTable('admin_users')) {
@@ -416,5 +454,30 @@ class ChatController extends Controller
                     ->orWhereNull('viewing_session_id');
             })
             ->exists();
+    }
+
+    /**
+     * Promote visitor messages as support comes online or opens the session.
+     * Statuses only move forward: sent -> delivered -> seen.
+     */
+    private function syncVisitorMessageStatuses(string $sessionId): void
+    {
+        if ($this->visitorIsBeingViewed($sessionId)) {
+            DB::table('chat_messages')
+                ->where('session_id', $sessionId)
+                ->where('sender', 'visitor')
+                ->where('status', '!=', 'seen')
+                ->update(['status' => 'seen', 'is_read' => 1]);
+
+            return;
+        }
+
+        if ($this->adminIsOnline()) {
+            DB::table('chat_messages')
+                ->where('session_id', $sessionId)
+                ->where('sender', 'visitor')
+                ->where('status', 'sent')
+                ->update(['status' => 'delivered']);
+        }
     }
 }
