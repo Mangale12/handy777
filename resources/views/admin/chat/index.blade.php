@@ -613,7 +613,7 @@
                         </div>
                     </div>
                     <button id="send-button" class="send" type="button" title="Send message" aria-label="Send message" disabled><svg width="21" height="21" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m4 4 16 8-16 8 3-8-3-8Zm3 8h13"></path></svg></button>
-                    <input id="chat-file-input" type="file" hidden accept="image/*,.heic,.heif,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip">
+                    <input id="chat-file-input" type="file" hidden accept="image/*,.avif,.bmp,.heic,.heif,.tif,.tiff,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip">
                 </div>
             </section>
         </main>
@@ -1170,8 +1170,8 @@
         fileInput.click();
     }
 
-    addFileButton.addEventListener('click', () => chooseFile('image/*,.heic,.heif,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip'));
-    imageButton.addEventListener('click', () => chooseFile('image/*,.heic,.heif'));
+    addFileButton.addEventListener('click', () => chooseFile('image/*,.avif,.bmp,.heic,.heif,.tif,.tiff,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip'));
+    imageButton.addEventListener('click', () => chooseFile('image/*,.avif,.bmp,.heic,.heif,.tif,.tiff'));
     fileButton.addEventListener('click', () => chooseFile('.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip'));
     fileInput.addEventListener('change', event => {
         const file = event.target.files[0];

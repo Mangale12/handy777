@@ -163,12 +163,12 @@ class ChatController extends Controller
 
         if ($file) {
             $fileField = $request->hasFile('file') ? 'file' : 'image';
-            $allowedChatTypes = 'jpg,jpeg,png,gif,webp,heic,heif,pdf,doc,docx,xls,xlsx,csv,txt,zip';
+            $allowedChatTypes = 'jpg,jpeg,png,gif,webp,avif,bmp,heic,heif,tif,tiff,pdf,doc,docx,xls,xlsx,csv,txt,zip';
             $fileRules = [
                 'file' => ['file', 'max:10240', 'mimes:' . $allowedChatTypes],
                 // Keep the legacy `image` field working, while allowing the
                 // HEIC/HEIF files produced by iPhones.
-                'image' => ['file', 'max:10240', 'mimes:jpg,jpeg,png,gif,webp,heic,heif'],
+                'image' => ['file', 'max:10240', 'mimes:jpg,jpeg,png,gif,webp,avif,bmp,heic,heif,tif,tiff'],
             ];
             $request->validate([$fileField => $fileRules[$fileField]]);
 
@@ -426,6 +426,9 @@ class ChatController extends Controller
             'image/png',
             'image/gif',
             'image/webp',
+            'image/avif',
+            'image/bmp',
+            'image/x-ms-bmp',
         ], true);
     }
 

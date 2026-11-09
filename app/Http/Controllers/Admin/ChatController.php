@@ -106,7 +106,7 @@ class ChatController extends Controller
 
         $validated = $request->validate([
             'message' => ['nullable', 'string', 'max:5000'],
-            'file' => ['nullable', 'file', 'max:10240', 'mimes:jpg,jpeg,png,gif,webp,heic,heif,pdf,doc,docx,xls,xlsx,csv,txt,zip'],
+            'file' => ['nullable', 'file', 'max:10240', 'mimes:jpg,jpeg,png,gif,webp,avif,bmp,heic,heif,tif,tiff,pdf,doc,docx,xls,xlsx,csv,txt,zip'],
         ]);
 
         $messageText = trim((string) ($validated['message'] ?? ''));
@@ -386,6 +386,9 @@ class ChatController extends Controller
             'image/png',
             'image/gif',
             'image/webp',
+            'image/avif',
+            'image/bmp',
+            'image/x-ms-bmp',
         ], true);
     }
 

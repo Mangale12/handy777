@@ -1,14 +1,17 @@
 @php
     $chatFullName = trim((string) ($user->full_name ?? ''));
     $chatFacebookName = trim((string) ($user->facebook_name ?? ''));
-    $chatDisplayName = $chatFullName ?: ($chatFacebookName ?: 'Player');
+    $chatSupportName = 'AB Gaming Support';
+    $chatUserInitial = strtoupper(substr($chatFullName ?: 'U', 0, 1));
+    $chatSupportPhone = trim((string) config('app.support_phone', ''));
+    $chatSupportPhoneHref = preg_replace('/[^0-9+]/', '', $chatSupportPhone);
 @endphp
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
-    <title>{{ $chatDisplayName }} · Chat Support</title>
+    <title>{{ $chatSupportName }} · Chat Support</title>
     
     <!-- SEO & Meta Tags -->
     <meta name="description" content="Connect with our support team instantly through our dedicated chat portal.">
@@ -106,10 +109,68 @@
         }
 
         .chat-logout-form {
+            display: inline-flex;
+        }
+
+        .chat-header-actions {
             position: absolute;
             top: calc(var(--safe-top) + 14px);
             right: 12px;
             z-index: 2;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .user-details-toggle {
+            display: inline-flex;
+            width: 30px;
+            height: 30px;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            border: 1px solid rgba(255,255,255,.4);
+            border-radius: 50%;
+            color: #fff;
+            background: rgba(4, 17, 66, .2);
+            cursor: pointer;
+            backdrop-filter: blur(8px);
+        }
+
+        .user-details-toggle:hover,
+        .user-details-toggle[aria-expanded="true"],
+        .voice-call-toggle:hover {
+            background: rgba(255,255,255,.24);
+        }
+
+        .voice-call-toggle {
+            display: inline-flex;
+            width: 30px;
+            height: 30px;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            border: 1px solid rgba(255,255,255,.4);
+            border-radius: 50%;
+            color: #fff;
+            background: rgba(4, 17, 66, .2);
+            cursor: pointer;
+            text-decoration: none;
+            backdrop-filter: blur(8px);
+        }
+
+        .voice-call-toggle[aria-disabled="true"] {
+            cursor: not-allowed;
+            opacity: .62;
+        }
+
+        .user-details-toggle:focus-visible,
+        .voice-call-toggle:focus-visible,
+        .user-details-close:focus-visible,
+        .chat-logout-btn:focus-visible,
+        .chat-home-link:focus-visible {
+            outline: 2px solid #fff;
+            outline-offset: 2px;
         }
 
         .chat-home-link {
@@ -202,6 +263,155 @@
             font-size: 11px;
             text-overflow: ellipsis;
             white-space: nowrap;
+        }
+
+        /* ── Account details drawer ── */
+        .user-details-layer {
+            position: absolute;
+            z-index: 250;
+            inset: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .user-details-layer.is-open {
+            visibility: visible;
+            pointer-events: auto;
+        }
+
+        .user-details-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(4, 10, 30, .42);
+            opacity: 0;
+            transition: opacity .2s ease;
+        }
+
+        .user-details-layer.is-open .user-details-backdrop {
+            opacity: 1;
+        }
+
+        .user-details-panel {
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: min(320px, 88%);
+            overflow-y: auto;
+            padding: calc(var(--safe-top) + 18px) 20px calc(var(--safe-bottom) + 20px);
+            color: var(--ios-text);
+            background: rgba(255,255,255,.98);
+            box-shadow: -12px 0 35px rgba(10, 20, 65, .2);
+            transform: translateX(100%);
+            transition: transform .24s ease;
+        }
+
+        [data-theme="dark"] .user-details-panel {
+            background: rgba(15, 22, 48, .98);
+        }
+
+        .user-details-layer.is-open .user-details-panel {
+            transform: translateX(0);
+        }
+
+        .user-details-heading {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 14px;
+            margin-bottom: 22px;
+        }
+
+        .user-details-eyebrow {
+            margin-bottom: 4px;
+            color: var(--ios-blue);
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: .09em;
+            text-transform: uppercase;
+        }
+
+        .user-details-heading h2 {
+            margin: 0;
+            font-size: 20px;
+            line-height: 1.2;
+        }
+
+        .user-details-close {
+            display: inline-flex;
+            width: 32px;
+            height: 32px;
+            flex: 0 0 32px;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            border: 0;
+            border-radius: 50%;
+            color: var(--ios-gray-text);
+            background: var(--ios-surface);
+            font-size: 22px;
+            line-height: 1;
+            cursor: pointer;
+        }
+
+        .user-details-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding: 14px;
+            border: 1px solid var(--ios-border);
+            border-radius: 15px;
+            background: var(--ios-surface);
+        }
+
+        .user-details-avatar {
+            display: inline-flex;
+            width: 46px;
+            height: 46px;
+            flex: 0 0 46px;
+            align-items: center;
+            justify-content: center;
+            border-radius: 14px;
+            color: #fff;
+            background: linear-gradient(135deg, var(--ios-blue), var(--ios-purple), var(--ios-pink));
+            font-size: 19px;
+            font-weight: 800;
+        }
+
+        .user-details-profile strong,
+        .user-details-profile small {
+            display: block;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .user-details-profile strong { font-size: 15px; }
+        .user-details-profile small { margin-top: 4px; color: var(--ios-gray-text); font-size: 12px; }
+
+        .user-details-list {
+            margin: 0;
+        }
+
+        .user-details-list > div {
+            padding: 12px 0;
+            border-bottom: 1px solid var(--ios-border);
+        }
+
+        .user-details-list dt {
+            margin-bottom: 4px;
+            color: var(--ios-gray-text);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+        }
+
+        .user-details-list dd {
+            margin: 0;
+            overflow-wrap: anywhere;
+            font-size: 14px;
         }
 
         .agent-status {
@@ -773,7 +983,7 @@
             <div class="welcome-icon">
                 <img src="{{ asset('images/abgaming.jpeg') }}" alt="AB Gaming">
             </div>
-            <h1 class="welcome-title">{{ $chatDisplayName }}</h1>
+            <h1 class="welcome-title">{{ $chatSupportName }}</h1>
             <p class="welcome-desc">Connecting your support chat…</p>
             <div id="chat-start-error" role="alert" style="display:none;color:#ff3b30;font-size:14px;margin-top:10px;text-align:center;"></div>
             <a id="chat-back-link" href="{{ route('chat') }}" style="display:none;margin-top:16px;color:#007aff;font-size:14px;text-decoration:none;">Return to email form</a>
@@ -781,28 +991,82 @@
 
         <header>
             <a class="chat-home-link" href="{{ route('homePage') }}" aria-label="Back to home">← Home</a>
-            <form class="chat-logout-form" id="chat-logout-form" method="POST" action="{{ route('chat.logout') }}">
-                @csrf
-                <button class="chat-logout-btn" type="submit">Log out</button>
-            </form>
+            <div class="chat-header-actions">
+                @if ($chatSupportPhoneHref)
+                    <a id="voice-call-button" class="voice-call-toggle" href="tel:{{ $chatSupportPhoneHref }}" aria-label="Call AB Gaming Support" title="Call AB Gaming Support">
+                @else
+                    <button id="voice-call-button" class="voice-call-toggle" type="button" aria-label="Voice call unavailable" aria-disabled="true" title="Voice calling is not configured">
+                @endif
+                    <svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.9.33 1.78.62 2.63a2 2 0 0 1-.45 2.11L8 9.73a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.85.29 1.73.5 2.63.62A2 2 0 0 1 22 16.92z"></path>
+                    </svg>
+                @if ($chatSupportPhoneHref)
+                    </a>
+                @else
+                    </button>
+                @endif
+                <button id="user-details-toggle" class="user-details-toggle" type="button" aria-label="Show your account details" aria-controls="user-details-panel" aria-expanded="false" title="Show account details">
+                    <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="9"></circle>
+                        <path stroke-linecap="round" d="M12 10.5v5M12 7.5h.01"></path>
+                    </svg>
+                </button>
+                <form class="chat-logout-form" id="chat-logout-form" method="POST" action="{{ route('chat.logout') }}">
+                    @csrf
+                    <button class="chat-logout-btn" type="submit">Log out</button>
+                </form>
+            </div>
             <div class="agent-info">
                 <div class="agent-avatar" id="agent-avatar-icon">
                     <img src="{{ asset('images/abgaming.jpeg') }}" alt="AB Gaming">
                 </div>
-                <div class="agent-name" id="agent-display-name">{{ $chatDisplayName }}</div>
-                <div class="agent-handle" id="agent-facebook-name">
-                    @if ($chatFacebookName)
-                        Facebook: {{ $chatFacebookName }}
-                    @else
-                        Support conversation
-                    @endif
-                </div>
+                <div class="agent-name" id="agent-display-name">{{ $chatSupportName }}</div>
+                <div class="agent-handle">Support conversation</div>
                 <div class="agent-status">
                     <span class="status-dot"></span>
                     Online
                 </div>
             </div>
         </header>
+
+        <div id="user-details-layer" class="user-details-layer" aria-hidden="true">
+            <div id="user-details-backdrop" class="user-details-backdrop"></div>
+            <aside id="user-details-panel" class="user-details-panel" role="dialog" aria-modal="true" aria-labelledby="user-details-title" tabindex="-1">
+                <div class="user-details-heading">
+                    <div>
+                        <div class="user-details-eyebrow">Your account</div>
+                        <h2 id="user-details-title">User details</h2>
+                    </div>
+                    <button id="user-details-close" class="user-details-close" type="button" aria-label="Close user details">&times;</button>
+                </div>
+
+                <div class="user-details-profile">
+                    <span class="user-details-avatar" aria-hidden="true">{{ $chatUserInitial }}</span>
+                    <span>
+                        <strong>{{ $chatFullName ?: 'Account holder' }}</strong>
+                        <small>{{ $user->email }}</small>
+                    </span>
+                </div>
+
+                <dl class="user-details-list">
+                    @if ($chatFullName)
+                        <div><dt>Full name</dt><dd>{{ $chatFullName }}</dd></div>
+                    @endif
+                    @if ($user->email)
+                        <div><dt>Email</dt><dd>{{ $user->email }}</dd></div>
+                    @endif
+                    @if ($user->number)
+                        <div><dt>Phone</dt><dd>{{ $user->number }}</dd></div>
+                    @endif
+                    @if ($user->game_id)
+                        <div><dt>Game ID</dt><dd>{{ $user->game_id }}</dd></div>
+                    @endif
+                    @if ($chatFacebookName)
+                        <div><dt>Facebook</dt><dd>{{ $chatFacebookName }}</dd></div>
+                    @endif
+                </dl>
+            </aside>
+        </div>
 
         <main id="messages-container">
             <!-- Messages will be injected here -->
@@ -825,7 +1089,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
                 </svg>
             </button>
-            <input type="file" id="file-input" accept="image/*,.heic,.heif,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip" style="display: none">
+            <input type="file" id="file-input" accept="image/*,.avif,.bmp,.heic,.heif,.tif,.tiff,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip" style="display: none">
             
             <div class="input-container">
                 <textarea id="message-input" placeholder="iMessage" rows="1"></textarea>
@@ -877,7 +1141,25 @@
         const removePreview = document.querySelector('.remove-preview');
         const newMsgPill = document.getElementById('new-msg-pill');
         const chatError = document.getElementById('chat-error');
+        const userDetailsToggle = document.getElementById('user-details-toggle');
+        const userDetailsLayer = document.getElementById('user-details-layer');
+        const userDetailsPanel = document.getElementById('user-details-panel');
+        const userDetailsClose = document.getElementById('user-details-close');
+        const userDetailsBackdrop = document.getElementById('user-details-backdrop');
+        const voiceCallButton = document.getElementById('voice-call-button');
         let chatErrorTimer = null;
+
+        function setUserDetailsOpen(open) {
+            userDetailsLayer.classList.toggle('is-open', open);
+            userDetailsLayer.setAttribute('aria-hidden', open ? 'false' : 'true');
+            userDetailsToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+
+            if (open) {
+                userDetailsPanel.focus({ preventScroll: true });
+            } else {
+                userDetailsToggle.focus({ preventScroll: true });
+            }
+        }
 
         // ── Initialization ──
         function init() {
@@ -1445,6 +1727,23 @@
         }
 
         // ── Event Listeners ──
+        if (voiceCallButton && voiceCallButton.getAttribute('aria-disabled') === 'true') {
+            voiceCallButton.addEventListener('click', () => {
+                showChatError('Voice calling is not configured yet.');
+            });
+        }
+
+        userDetailsToggle.addEventListener('click', () => {
+            setUserDetailsOpen(!userDetailsLayer.classList.contains('is-open'));
+        });
+        userDetailsClose.addEventListener('click', () => setUserDetailsOpen(false));
+        userDetailsBackdrop.addEventListener('click', () => setUserDetailsOpen(false));
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && userDetailsLayer.classList.contains('is-open')) {
+                setUserDetailsOpen(false);
+            }
+        });
+
         document.getElementById('chat-logout-form').addEventListener('submit', () => {
             ['wc_session_id', 'wc_visitor_email', 'wc_visitor_name', 'wc_fp'].forEach(key => {
                 localStorage.removeItem(key);
