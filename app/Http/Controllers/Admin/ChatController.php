@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use App\Services\ChatPushService;
 
 class ChatController extends Controller
 {
@@ -80,6 +81,54 @@ class ChatController extends Controller
         }
 
         return response()->json(['sessions' => $query->get()]);
+    }
+
+    public function pushConfig(): JsonResponse
+    {
+        return response()->json([
+            'enabled' => ChatPushService::isConfigured(),
+            'public_key' => config('services.webpush.public_key'),
+        ]);
+    }
+
+    public function subscribePush(Request $request): JsonResponse
+    {
+        if (!ChatPushService::isConfigured()) {
+            return response()->json(['message' => 'Web Push is not configured on the server.'], 503);
+        }
+
+        $data = $request->validate([
+            'endpoint' => ['required', 'url', 'max:2048'],
+            'keys' => ['required', 'array'],
+            'keys.p256dh' => ['required', 'string', 'max:512'],
+            'keys.auth' => ['required', 'string', 'max:512'],
+            'contentEncoding' => ['nullable', 'string', 'in:aes128gcm,aesgcm'],
+        ]);
+
+        DB::table('chat_push_subscriptions')->updateOrInsert(
+            ['endpoint' => $data['endpoint']],
+            [
+                'user_id' => optional($request->user())->id,
+                'public_key' => $data['keys']['p256dh'],
+                'auth_token' => $data['keys']['auth'],
+                'content_encoding' => $data['contentEncoding'] ?? 'aes128gcm',
+                'updated_at' => now(),
+                'created_at' => now(),
+            ]
+        );
+
+        return response()->json(['success' => true]);
+    }
+
+    public function unsubscribePush(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'endpoint' => ['required', 'url', 'max:2048'],
+        ]);
+
+        DB::table('chat_push_subscriptions')->where('endpoint', $data['endpoint'])->delete();
+
+        return response()->json(['success' => true]);
     }
 
     public function messages(string $sessionId): JsonResponse

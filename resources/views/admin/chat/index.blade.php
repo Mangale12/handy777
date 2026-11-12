@@ -529,7 +529,7 @@
             <button class="top-action active" type="button" title="Messenger" aria-label="Messenger">
                 <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><path stroke-linecap="round" stroke-linejoin="round" fill="currentColor" d="M12 3.5a8.5 8.5 0 0 0-8.5 8.2c0 2.5 1.2 4.7 3 6.2v3.1l3-1.7c.8.2 1.6.4 2.5.4a8.5 8.5 0 1 0 0-17Z"></path><path stroke="#fff" stroke-linecap="round" stroke-linejoin="round" d="m7.4 13 3-3 1.8 1.5 3.5-2.5-2.2 3.8-1.8-1.4L8.2 14Z"></path></svg>
             </button>
-            <button class="top-action" type="button" title="Notifications" aria-label="Notifications">
+            <button id="notification-button" class="top-action" type="button" title="Enable chat notifications" aria-label="Enable chat notifications" aria-pressed="false">
                 <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4"></path></svg>
             </button>
             <a class="profile-link" href="{{ route('logout') }}" title="Log out">
@@ -681,6 +681,10 @@
         block: @json(route('admin.chat.block', ['sessionId' => '__SESSION__'])),
         close: @json(route('admin.chat.close', ['sessionId' => '__SESSION__'])),
         destroy: @json(route('admin.chat.destroy', ['sessionId' => '__SESSION__'])),
+        pushConfig: @json(route('admin.chat.push.config')),
+        pushSubscribe: @json(route('admin.chat.push.subscribe')),
+        pushUnsubscribe: @json(route('admin.chat.push.unsubscribe')),
+        serviceWorker: @json(rtrim(request()->getBaseUrl(), '/') . '/chat-service-worker.js'),
     };
     const csrf = document.querySelector('meta[name="csrf-token"]').content;
     const list = document.getElementById('conversation-list');
@@ -712,6 +716,14 @@
     const detailsContent = document.getElementById('details-content');
     const detailsToggle = document.getElementById('details-toggle');
     const detailsClose = document.getElementById('details-close');
+    const notificationButton = document.getElementById('notification-button');
+
+    const notificationState = {
+        audioContext: null,
+        subscription: null,
+        notificationsEnabled: false,
+        unreadBySession: new Map(state.sessions.map(session => [session.session_id, Number(session.unread_count) || 0])),
+    };
 
     const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (character) => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#039;', '"': '&quot;'
@@ -747,6 +759,187 @@
         if (!value) return '';
         const date = new Date(String(value).replace(' ', 'T'));
         return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString();
+    }
+
+    function primeNotificationAudio() {
+        if (!notificationState.audioContext) {
+            try {
+                notificationState.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            } catch (_) {
+                return null;
+            }
+        }
+
+        if (notificationState.audioContext.state === 'suspended') {
+            notificationState.audioContext.resume().catch(() => {});
+        }
+
+        return notificationState.audioContext;
+    }
+
+    function playNotificationSound() {
+        const context = primeNotificationAudio();
+        if (!context) return;
+
+        [[620, 0], [820, 0.11]].forEach(([frequency, delay]) => {
+            const oscillator = context.createOscillator();
+            const gain = context.createGain();
+            oscillator.connect(gain);
+            gain.connect(context.destination);
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(frequency, context.currentTime + delay);
+            gain.gain.setValueAtTime(0.001, context.currentTime + delay);
+            gain.gain.exponentialRampToValueAtTime(0.18, context.currentTime + delay + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + delay + 0.28);
+            oscillator.start(context.currentTime + delay);
+            oscillator.stop(context.currentTime + delay + 0.3);
+        });
+    }
+
+    function visitorLabel(sessionId) {
+        const session = sessionFor(sessionId);
+        return session ? (session.form_full_name || session.visitor_name || session.visitor_email || 'Visitor') : 'Visitor';
+    }
+
+    function notifyVisitorMessages(newMessages, sessionId) {
+        if (!newMessages.length) return;
+
+        playNotificationSound();
+
+        // The service worker handles background push notifications when push
+        // is enabled. This page-level fallback covers localhost and setups
+        // where VAPID keys have not been configured yet.
+        if (document.hidden && notificationState.notificationsEnabled && !notificationState.subscription && 'Notification' in window && Notification.permission === 'granted') {
+            const latest = newMessages[newMessages.length - 1];
+            const body = latest.message || (latest.message_type === 'image' ? 'Sent a photo' : 'Sent an attachment');
+            const notification = new Notification('New chat message', {
+                body: `${visitorLabel(sessionId)}: ${body}`,
+                icon: @json(rtrim(request()->getBaseUrl(), '/') . '/images/abgaming.jpeg'),
+                tag: `chat-${sessionId}`,
+            });
+            notification.onclick = () => {
+                window.focus();
+                openSession(sessionId);
+                notification.close();
+            };
+        }
+    }
+
+    function setNotificationButton(enabled, title) {
+        notificationButton.classList.toggle('active', enabled);
+        notificationButton.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+        notificationButton.title = title;
+        notificationButton.setAttribute('aria-label', title);
+    }
+
+    function base64ToUint8Array(value) {
+        const padding = '='.repeat((4 - value.length % 4) % 4);
+        const normalized = (value + padding).replace(/-/g, '+').replace(/_/g, '/');
+        const raw = window.atob(normalized);
+        return Uint8Array.from([...raw].map(character => character.charCodeAt(0)));
+    }
+
+    async function enableAdminNotifications() {
+        primeNotificationAudio();
+
+        if (!('Notification' in window)) {
+            setNotificationButton(true, 'Sound enabled; browser notifications are not supported');
+            return;
+        }
+
+        const permission = Notification.permission === 'granted'
+            ? 'granted'
+            : await Notification.requestPermission();
+        if (permission !== 'granted') {
+            setError('Allow browser notifications to receive chat alerts.');
+            return;
+        }
+
+        notificationState.notificationsEnabled = true;
+
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+            setNotificationButton(true, 'Sound enabled; Web Push is not supported by this browser');
+            return;
+        }
+
+        try {
+            const configResponse = await fetch(urls.pushConfig, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' });
+            const pushConfig = await configResponse.json();
+            if (!pushConfig.enabled || !pushConfig.public_key) {
+                setNotificationButton(true, 'Sound enabled; server Web Push keys are not configured');
+                setError('Sound is enabled. Add VAPID keys to .env for background push notifications.');
+                return;
+            }
+
+            const registration = await navigator.serviceWorker.register(urls.serviceWorker, { scope: `${new URL(urls.serviceWorker, window.location.href).pathname.replace(/\/chat-service-worker\.js$/, '')}/` });
+            let subscription = await registration.pushManager.getSubscription();
+            if (!subscription) {
+                subscription = await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: base64ToUint8Array(pushConfig.public_key),
+                });
+            }
+
+            const subscriptionJson = subscription.toJSON();
+            const subscribeResponse = await fetch(urls.pushSubscribe, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
+                body: JSON.stringify({
+                    endpoint: subscriptionJson.endpoint,
+                    keys: subscriptionJson.keys,
+                    contentEncoding: 'aes128gcm',
+                }),
+            });
+            if (!subscribeResponse.ok) throw new Error('The server could not save this browser subscription.');
+
+            notificationState.subscription = subscription;
+            setNotificationButton(true, 'Chat notifications enabled');
+            setError();
+        } catch (error) {
+            setNotificationButton(true, 'Sound enabled; Web Push setup failed');
+            setError(error.message || 'Web Push could not be enabled in this browser.');
+        }
+    }
+
+    async function disableAdminNotifications() {
+        const subscription = notificationState.subscription;
+        notificationState.notificationsEnabled = false;
+        notificationState.subscription = null;
+        setNotificationButton(false, 'Enable chat notifications');
+
+        if (!subscription) return;
+
+        try {
+            const subscriptionJson = subscription.toJSON();
+            await fetch(urls.pushUnsubscribe, {
+                method: 'DELETE',
+                credentials: 'same-origin',
+                headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
+                body: JSON.stringify({ endpoint: subscriptionJson.endpoint }),
+            });
+            await subscription.unsubscribe();
+        } catch (_) {
+            // The local state is still disabled; an expired subscription is
+            // removed automatically when the next push is attempted.
+        }
+    }
+
+    async function restoreExistingPushSubscription() {
+        if (!('Notification' in window) || Notification.permission !== 'granted') return;
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+
+        try {
+            const registration = await navigator.serviceWorker.getRegistration(urls.serviceWorker);
+            const subscription = registration ? await registration.pushManager.getSubscription() : null;
+            if (subscription) {
+                notificationState.subscription = subscription;
+                notificationState.notificationsEnabled = true;
+                setNotificationButton(true, 'Chat notifications enabled');
+            }
+        } catch (_) {
+            // The explicit enable action will show a useful error if needed.
+        }
     }
 
     function filteredSessions() {
@@ -1044,13 +1237,21 @@
     }
 
     async function refreshSessions() {
-        if (state.settingsOpen) return;
         try {
             const response = await fetch(sessionsUrl(), { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' });
             if (!response.ok) return;
             const data = await response.json();
-            state.sessions = data.sessions || [];
-            renderSessions();
+            const nextSessions = data.sessions || [];
+            nextSessions.forEach(session => {
+                const unread = Number(session.unread_count) || 0;
+                const previousUnread = notificationState.unreadBySession.get(session.session_id) ?? 0;
+                if (session.session_id !== state.activeId && unread > previousUnread) {
+                    notifyVisitorMessages([{ message: session.last_message, message_type: session.last_message_type }], session.session_id);
+                }
+                notificationState.unreadBySession.set(session.session_id, unread);
+            });
+            state.sessions = nextSessions;
+            if (!state.settingsOpen) renderSessions();
             if (state.activeId && sessionFor()) renderChatHeader(sessionFor());
         } catch (_) { /* The next poll will retry. */ }
     }
@@ -1062,7 +1263,11 @@
             const response = await fetch(urls.messages.replace('__SESSION__', encodeURIComponent(state.activeId)), { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' });
             if (!response.ok) return;
             const data = await response.json();
-            state.messages = data.messages || [];
+            const previousVisitorIds = new Set(state.messages.filter(message => message.sender === 'visitor').map(message => Number(message.id)));
+            const nextMessages = data.messages || [];
+            const newVisitorMessages = nextMessages.filter(message => message.sender === 'visitor' && !previousVisitorIds.has(Number(message.id)));
+            if (newVisitorMessages.length) notifyVisitorMessages(newVisitorMessages, state.activeId);
+            state.messages = nextMessages;
             if (data.session) {
                 updateActiveSession(data.session);
                 renderChatHeader(data.session);
@@ -1225,6 +1430,14 @@
         }
     });
     sendButton.addEventListener('click', sendMessage);
+    notificationButton.addEventListener('click', () => {
+        if (notificationState.notificationsEnabled && notificationState.subscription) {
+            disableAdminNotifications();
+        } else {
+            enableAdminNotifications();
+        }
+    });
+    document.addEventListener('click', () => primeNotificationAudio(), { once: true });
     sessionIdButton.addEventListener('click', async () => {
         if (!state.activeId) return;
         try {
@@ -1250,6 +1463,7 @@
         showChat();
         renderMessages();
     }
+    restoreExistingPushSubscription();
     setInterval(refreshSessions, 10000);
     setInterval(refreshMessages, 5000);
 </script>

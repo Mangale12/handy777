@@ -34,6 +34,11 @@ return [
         'secret' => env('NEXMO_SECRET'),
         'sms_from' => env('SMS_FROM'),
         'sms_to' => env('SMS_TO')
+    ],
+    'webpush' => [
+        'subject' => env('WEBPUSH_VAPID_SUBJECT', 'mailto:admin@example.com'),
+        'public_key' => env('WEBPUSH_VAPID_PUBLIC_KEY'),
+        'private_key' => env('WEBPUSH_VAPID_PRIVATE_KEY'),
     ]
 
 ];

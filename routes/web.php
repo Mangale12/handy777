@@ -47,6 +47,15 @@ Route::get('clear', function () {
 
 })->name('clear.go');
 
+// Serve the worker through Laravel as well as the root-level static file so
+// the setup works when the application is hosted with public/ as its document
+// root or from a subdirectory such as /handy77.
+Route::get('/chat-service-worker.js', function () {
+    return response()->file(base_path('chat-service-worker.js'), [
+        'Content-Type' => 'application/javascript; charset=UTF-8',
+    ]);
+})->name('chat.service-worker');
+
 Route::get('/run-mail-alert', function () {
 
     // 🔐 simple security (secret key)
@@ -357,6 +366,9 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/admin/chat', [App\Http\Controllers\Admin\ChatController::class, 'index'])->name('admin.chat');
     Route::get('/admin/chat/start', [App\Http\Controllers\Admin\ChatController::class, 'index'])->name('admin.chat.start');
     Route::get('/admin/chat/sessions', [App\Http\Controllers\Admin\ChatController::class, 'sessions'])->name('admin.chat.sessions');
+    Route::get('/admin/chat/push/config', [App\Http\Controllers\Admin\ChatController::class, 'pushConfig'])->name('admin.chat.push.config');
+    Route::post('/admin/chat/push/subscribe', [App\Http\Controllers\Admin\ChatController::class, 'subscribePush'])->name('admin.chat.push.subscribe');
+    Route::delete('/admin/chat/push/subscribe', [App\Http\Controllers\Admin\ChatController::class, 'unsubscribePush'])->name('admin.chat.push.unsubscribe');
     Route::get('/admin/chat/{sessionId}/messages', [App\Http\Controllers\Admin\ChatController::class, 'messages'])->name('admin.chat.messages');
     Route::post('/admin/chat/{sessionId}/messages', [App\Http\Controllers\Admin\ChatController::class, 'storeMessage'])->name('admin.chat.messages.store');
     Route::post('/admin/chat/{sessionId}/read', [App\Http\Controllers\Admin\ChatController::class, 'markRead'])->name('admin.chat.read');

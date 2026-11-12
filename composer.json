@@ -15,6 +15,7 @@
         "laravel/tinker": "^2.5",
         "laravel/ui": "^3.2",
         "maatwebsite/excel": "^3.1",
+        "minishlink/web-push": "^7.0",
         "nexmo/client-core": "^2.9",
         "nexmo/laravel": "^2.4",
         "nyholm/psr7": "^1.4",

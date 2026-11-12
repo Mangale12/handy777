@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use App\Services\ChatPushService;
 
 class ChatController extends Controller
 {
@@ -215,6 +216,20 @@ class ChatController extends Controller
             ]);
 
         $storedMessage = DB::table('chat_messages')->where('id', $messageId)->first();
+        $pushSessionId = $session->session_id;
+        $pushVisitorName = (string) ($session->visitor_name ?: $session->visitor_email ?: 'Visitor');
+        $pushMessageType = $message['message_type'];
+        // Keep push-provider latency out of the visitor's send response. The
+        // callback runs during Laravel's termination phase after the response
+        // has been sent to the browser.
+        app()->terminating(function () use ($pushSessionId, $pushVisitorName, $messageText, $pushMessageType) {
+            app(ChatPushService::class)->notifyAdmins(
+                $pushSessionId,
+                $pushVisitorName,
+                $messageText,
+                $pushMessageType
+            );
+        });
         $response = [
             'success' => true,
             'id' => $messageId,
