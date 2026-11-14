@@ -330,6 +330,21 @@
         .message-file { display: inline-flex; align-items: center; gap: 8px; padding: 9px 11px; border: 1px solid rgba(100, 116, 139, .2); border-radius: 10px; color: #334155; background: rgba(255, 255, 255, .7); font-size: 14px; font-weight: 650; }
         .message-file:hover { color: var(--blue); background: #fff; }
         .message-caption { margin-top: 8px; white-space: pre-wrap; overflow-wrap: anywhere; }
+        .message-content { display: flex; flex-direction: column; }
+        .message-row.visitor .message-content { align-items: flex-start; }
+        .message-row.agent .message-content { align-items: flex-end; }
+        .message-reply { margin: -2px -4px 9px; padding: 7px 9px; border-left: 3px solid currentColor; border-radius: 7px; color: inherit; background: rgba(255,255,255,.16); font-size: 12px; line-height: 1.3; opacity: .9; }
+        .message-row.visitor .message-reply { background: #e8eef8; }
+        .message-reply strong, .message-reply span { display: block; }
+        .message-reply span { margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .reply-message-btn { margin-top: 2px; padding: 2px 5px; border: 0; color: #8994a7; background: transparent; font-size: 11px; cursor: pointer; }
+        .reply-message-btn:hover { color: var(--blue); }
+        .message-row.reply-target .message-bubble { animation: replyTargetPulse 2.4s ease-out; }
+        @keyframes replyTargetPulse {
+            0%, 100% { box-shadow: inherit; }
+            12% { box-shadow: 0 0 0 4px rgba(36,107,254,.45), 0 8px 22px rgba(36,107,254,.28); }
+            45% { box-shadow: 0 0 0 4px rgba(240,68,157,.3), 0 8px 22px rgba(36,107,254,.2); }
+        }
 
         .composer { display: flex; align-items: center; gap: 10px; padding: 14px 22px 18px; border-top: 1px solid var(--line); }
         .composer-plus, .send {
@@ -353,6 +368,13 @@
         .attachment-preview { display: flex; align-items: center; gap: 8px; padding: 8px 22px 0; color: #526078; font-size: 12px; }
         .attachment-preview[hidden] { display: none; }
         .attachment-preview span { max-width: min(520px, 70%); overflow: hidden; padding: 6px 9px; border: 1px solid #dbe3ef; border-radius: 8px; background: #f8fafc; text-overflow: ellipsis; white-space: nowrap; }
+        .reply-preview { display: flex; align-items: center; gap: 8px; padding: 8px 22px 0; border-left: 3px solid var(--blue); color: #334155; background: #f8fbff; font-size: 12px; }
+        .reply-preview[hidden] { display: none; }
+        .reply-preview-copy { min-width: 0; flex: 1; }
+        .reply-preview-copy strong, .reply-preview-copy span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .reply-preview-copy span { margin-top: 2px; color: #64748b; }
+        .reply-preview-close { width: 26px; height: 26px; border: 0; border-radius: 50%; color: #64748b; background: transparent; font-size: 18px; cursor: pointer; }
+        .reply-preview-close:hover { color: var(--ink); background: #e2e8f0; }
         .attachment-preview button { display: grid; width: 24px; height: 24px; place-items: center; border: 0; border-radius: 50%; color: #64748b; background: #f1f5f9; }
         .attachment-preview button:hover { color: #b42318; background: #fee2e2; }
         .send { color: #fff; background: var(--blue); }
@@ -601,6 +623,13 @@
                 </div>
                 <div id="error" class="error" role="alert"></div>
                 <div id="messages" class="messages"></div>
+                <div id="reply-preview" class="reply-preview" hidden>
+                    <div class="reply-preview-copy">
+                        <strong id="reply-preview-title">Replying to message</strong>
+                        <span id="reply-preview-text"></span>
+                    </div>
+                    <button id="reply-preview-close" class="reply-preview-close" type="button" aria-label="Cancel reply">&times;</button>
+                </div>
                 <div id="attachment-preview" class="attachment-preview" hidden></div>
                 <div class="composer">
                     <button id="add-file-button" class="composer-plus" type="button" title="Attach a file" aria-label="Attach a file"><svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" d="M12 5v14M5 12h14"></path></svg></button>
@@ -671,6 +700,8 @@
         detailsOpen: false,
         settingsOpen: false,
         pendingFile: null,
+        replyingTo: null,
+        replyHighlightTimer: null,
     };
 
     const urls = {
@@ -710,6 +741,10 @@
     const fileButton = document.getElementById('file-button');
     const fileInput = document.getElementById('chat-file-input');
     const attachmentPreview = document.getElementById('attachment-preview');
+    const replyPreview = document.getElementById('reply-preview');
+    const replyPreviewTitle = document.getElementById('reply-preview-title');
+    const replyPreviewText = document.getElementById('reply-preview-text');
+    const replyPreviewClose = document.getElementById('reply-preview-close');
     const workspace = document.querySelector('.workspace');
     const detailsPanel = document.querySelector('.details');
     const detailsEmpty = document.getElementById('details-empty');
@@ -1039,6 +1074,78 @@
         });
     }
 
+    function messagePreviewText(message) {
+        if (message && message.message) return String(message.message).replace(/\s+/g, ' ').trim();
+        if (message && message.message_type === 'image') return 'Photo';
+        if (message && message.message_type === 'file') return `📎 ${message.file_name || 'Attachment'}`;
+        return 'Message';
+    }
+
+    function replyAuthorLabel(message) {
+        return message && message.sender === 'agent' ? 'You' : visitorLabel(state.activeId);
+    }
+
+    function renderReplyPreview() {
+        const message = state.replyingTo;
+        replyPreview.hidden = !message;
+        if (!message) {
+            replyPreviewTitle.textContent = 'Replying to message';
+            replyPreviewText.textContent = '';
+            return;
+        }
+        replyPreviewTitle.textContent = `Replying to ${replyAuthorLabel(message)}`;
+        replyPreviewText.textContent = messagePreviewText(message);
+    }
+
+    function setReplyingTo(message) {
+        if (!message || message.sender === 'system') return;
+        state.replyingTo = message;
+        renderReplyPreview();
+        highlightReplyTarget(message.id);
+        input.focus();
+    }
+
+    function clearReply() {
+        state.replyingTo = null;
+        renderReplyPreview();
+        clearReplyHighlight();
+    }
+
+    function highlightReplyTarget(messageId) {
+        clearReplyHighlight();
+        const target = Array.from(messages.querySelectorAll('.message-row'))
+            .find(row => String(row.dataset.messageId) === String(messageId));
+        if (!target) return;
+
+        target.classList.add('reply-target');
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        state.replyHighlightTimer = setTimeout(() => target.classList.remove('reply-target'), 2400);
+    }
+
+    function clearReplyHighlight() {
+        if (state.replyHighlightTimer) {
+            clearTimeout(state.replyHighlightTimer);
+            state.replyHighlightTimer = null;
+        }
+        messages.querySelectorAll('.reply-target').forEach(row => row.classList.remove('reply-target'));
+    }
+
+    function createReplyQuote(message) {
+        const reply = message && (message.reply_to || state.messages.find(item =>
+            message.reply_to_id && String(item.id) === String(message.reply_to_id)
+        ));
+        if (!reply) return null;
+        const quote = document.createElement('div');
+        quote.className = 'message-reply';
+        const author = document.createElement('strong');
+        author.textContent = replyAuthorLabel(reply);
+        const text = document.createElement('span');
+        text.textContent = messagePreviewText(reply);
+        quote.appendChild(author);
+        quote.appendChild(text);
+        return quote;
+    }
+
     function updateActiveSession(session) {
         state.activeSession = session;
         const index = state.sessions.findIndex(item => item.session_id === session.session_id);
@@ -1100,6 +1207,7 @@
         state.messages.forEach(message => {
             const row = document.createElement('div');
             row.className = `message-row ${message.sender || 'visitor'}`;
+            row.dataset.messageId = message.id;
             if (message.sender === 'visitor') {
                 const avatar = document.createElement('span');
                 const visitorName = sessionFor()?.form_full_name || sessionFor()?.visitor_name;
@@ -1112,6 +1220,8 @@
             content.className = 'message-content';
             const bubble = document.createElement('div');
             bubble.className = 'message-bubble';
+            const replyQuote = createReplyQuote(message);
+            if (replyQuote) bubble.appendChild(replyQuote);
             if (message.message_type === 'image' && message.file_url) {
                 const image = document.createElement('img');
                 image.className = 'message-image';
@@ -1141,7 +1251,7 @@
                     bubble.appendChild(caption);
                 }
             } else {
-                bubble.textContent = message.message || '';
+                bubble.appendChild(document.createTextNode(message.message || ''));
             }
             const timestamp = document.createElement('div');
             timestamp.className = 'message-time';
@@ -1160,6 +1270,15 @@
                 bubble.appendChild(status);
             }
             content.appendChild(bubble);
+            if (message.sender !== 'system') {
+                const replyButton = document.createElement('button');
+                replyButton.className = 'reply-message-btn';
+                replyButton.type = 'button';
+                replyButton.textContent = '↩ Reply';
+                replyButton.setAttribute('aria-label', 'Reply to message');
+                replyButton.addEventListener('click', () => setReplyingTo(message));
+                content.appendChild(replyButton);
+            }
             content.appendChild(timestamp);
             row.appendChild(content);
             messages.appendChild(row);
@@ -1210,6 +1329,7 @@
         state.activeSession = session;
         state.messages = [];
         state.pendingFile = null;
+        clearReply();
         fileInput.value = '';
         renderAttachmentPreview();
         renderSessions();
@@ -1287,6 +1407,7 @@
             const body = new FormData();
             if (message) body.append('message', message);
             if (file) body.append('file', file, file.name);
+            if (state.replyingTo) body.append('reply_to_id', state.replyingTo.id);
 
             const response = await fetch(urls.store.replace('__SESSION__', encodeURIComponent(state.activeId)), {
                 method: 'POST',
@@ -1299,6 +1420,7 @@
                 : 'Message could not be sent.');
             input.value = '';
             state.pendingFile = null;
+            clearReply();
             fileInput.value = '';
             renderAttachmentPreview();
             state.messages.push(data.message);
@@ -1343,6 +1465,7 @@
         setDetailsOpen(false);
         input.value = '';
         state.pendingFile = null;
+        clearReply();
         fileInput.value = '';
         renderAttachmentPreview();
         updateComposerState(null);
@@ -1430,6 +1553,7 @@
         }
     });
     sendButton.addEventListener('click', sendMessage);
+    replyPreviewClose.addEventListener('click', clearReply);
     notificationButton.addEventListener('click', () => {
         if (notificationState.notificationsEnabled && notificationState.subscription) {
             disableAdminNotifications();

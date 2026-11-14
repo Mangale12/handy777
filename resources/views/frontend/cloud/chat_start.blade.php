@@ -265,6 +265,16 @@
             white-space: nowrap;
         }
 
+        .visitor-email {
+            max-width: 82vw;
+            margin-top: 2px;
+            overflow: hidden;
+            color: rgba(255,255,255,.88);
+            font-size: 11px;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
         /* ── Account details drawer ── */
         .user-details-layer {
             position: absolute;
@@ -687,6 +697,54 @@
         .message-ticks.delivered { color: rgba(255,255,255,.96); }
         .message-ticks.seen { color: #62d9ff; }
 
+        .message-stack {
+            display: flex;
+            flex-direction: column;
+            max-width: 75%;
+        }
+
+        .msg-row.visitor .message-stack { align-items: flex-end; }
+        .msg-row.agent .message-stack { align-items: flex-start; }
+        .message-stack .bubble { max-width: 100%; }
+
+        .message-reply {
+            margin: -2px -4px 8px;
+            padding: 7px 9px;
+            border-left: 3px solid currentColor;
+            border-radius: 7px;
+            color: inherit;
+            background: rgba(255,255,255,.16);
+            font-size: 12px;
+            line-height: 1.3;
+            opacity: .9;
+        }
+
+        .agent .message-reply { background: #eef2ff; }
+        .message-reply strong, .message-reply span { display: block; }
+        .message-reply span { margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        .reply-message-btn {
+            margin-top: 2px;
+            padding: 2px 5px;
+            border: 0;
+            color: var(--ios-gray-text);
+            background: transparent;
+            font-size: 11px;
+            cursor: pointer;
+        }
+
+        .reply-message-btn:hover { color: var(--ios-blue); }
+
+        .msg-row.reply-target .bubble {
+            animation: replyTargetPulse 2.4s ease-out;
+        }
+
+        @keyframes replyTargetPulse {
+            0%, 100% { box-shadow: inherit; }
+            12% { box-shadow: 0 0 0 4px rgba(36,107,254,.45), 0 6px 18px rgba(36,107,254,.28); }
+            45% { box-shadow: 0 0 0 4px rgba(240,68,157,.3), 0 6px 18px rgba(36,107,254,.2); }
+        }
+
         /* Tap on a bubble to reveal timestamp */
         .msg-row.show-time + .msg-time {
             opacity: 1;
@@ -754,6 +812,7 @@
             border-top: 1px solid rgba(220,229,255,.9);
             box-shadow: 0 -8px 24px rgba(41,65,133,.06);
             display: flex;
+            flex-wrap: wrap;
             align-items: flex-end;
             gap: 8px;
             /* Always visible at bottom */
@@ -791,6 +850,26 @@
             outline: none;
             resize: none;
         }
+
+        .reply-preview {
+            display: flex;
+            flex: 0 0 100%;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+            padding: 4px 8px 2px;
+            border-left: 3px solid var(--ios-blue);
+            color: var(--ios-text);
+            background: rgba(36,107,254,.07);
+            font-size: 12px;
+        }
+
+        .reply-preview[hidden] { display: none; }
+        .reply-preview-copy { min-width: 0; flex: 1; }
+        .reply-preview-copy strong, .reply-preview-copy span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .reply-preview-copy span { margin-top: 2px; color: var(--ios-gray-text); }
+        .reply-preview-close { width: 26px; height: 26px; border: 0; border-radius: 50%; color: var(--ios-gray-text); background: transparent; font-size: 18px; cursor: pointer; }
+        .reply-preview-close:hover { color: var(--ios-text); background: rgba(100,112,140,.12); }
 
         .action-btn {
             width: 30px;
@@ -1022,6 +1101,9 @@
                 </div>
                 <div class="agent-name" id="agent-display-name">{{ $chatSupportName }}</div>
                 <div class="agent-handle">Support conversation</div>
+                @if ($user && $user->email)
+                    <div class="visitor-email">Your email: {{ $user->email }}</div>
+                @endif
                 <div class="agent-status">
                     <span class="status-dot"></span>
                     Online
@@ -1083,6 +1165,13 @@
         </div>
 
         <footer>
+            <div id="reply-preview" class="reply-preview" hidden>
+                <div class="reply-preview-copy">
+                    <strong id="reply-preview-title">Replying to message</strong>
+                    <span id="reply-preview-text"></span>
+                </div>
+                <button id="reply-preview-close" class="reply-preview-close" type="button" aria-label="Cancel reply">&times;</button>
+            </div>
             <button class="action-btn" id="attach-btn">
                 <svg width="26" height="26" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
@@ -1122,6 +1211,8 @@
         let lastMsgId = 0;
         let isPolling = false;
         let uploadFile = null;
+        let replyingTo = null;
+        let replyHighlightTimer = null;
         let unreadWhileScrolled = 0;
         let pollIntervalId = null;
         let heartbeatIntervalId = null;
@@ -1141,6 +1232,10 @@
         const removePreview = document.querySelector('.remove-preview');
         const newMsgPill = document.getElementById('new-msg-pill');
         const chatError = document.getElementById('chat-error');
+        const replyPreview = document.getElementById('reply-preview');
+        const replyPreviewTitle = document.getElementById('reply-preview-title');
+        const replyPreviewText = document.getElementById('reply-preview-text');
+        const replyPreviewClose = document.getElementById('reply-preview-close');
         const userDetailsToggle = document.getElementById('user-details-toggle');
         const userDetailsLayer = document.getElementById('user-details-layer');
         const userDetailsPanel = document.getElementById('user-details-panel');
@@ -1217,11 +1312,12 @@
             }
         }
 
-        async function apiUpload(file, caption = '') {
+        async function apiUpload(file, caption = '', replyToId = null) {
             const formData = new FormData();
             formData.append('action', 'send_message');
             formData.append('file', file);
             if (caption) formData.append('message', caption);
+            if (replyToId) formData.append('reply_to_id', replyToId);
             if (sessionId) formData.append('session_id', sessionId);
 
             try {
@@ -1301,15 +1397,19 @@
 
             let res;
             if (uploadFile) {
-                res = await apiUpload(uploadFile, text);
+                res = await apiUpload(uploadFile, text, replyingTo ? replyingTo.id : null);
             } else {
-                res = await apiFetch('send_message', { message: text });
+                res = await apiFetch('send_message', {
+                    message: text,
+                    reply_to_id: replyingTo ? replyingTo.id : null,
+                });
             }
 
             if (res.success) {
                 if (uploadFile) clearPreview();
                 messageInput.value = '';
                 messageInput.style.height = 'auto';
+                clearReply();
                 playSound('send');
                 updateSendButton();
                 pollMessages();
@@ -1364,6 +1464,7 @@
             }
 
             clearPreview();
+            clearReply();
             messagesContainer.innerHTML = '';
             messageInput.value = '';
             messageInput.style.height = 'auto';
@@ -1382,6 +1483,60 @@
             filePreviewName.style.display = 'none';
             previewOverlay.style.display = 'none';
             updateSendButton();
+        }
+
+        function messagePreviewText(message) {
+            if (message && message.message) return String(message.message).replace(/\s+/g, ' ').trim();
+            if (message && message.message_type === 'image') return 'Photo';
+            if (message && message.message_type === 'file') return `📎 ${message.file_name || 'Attachment'}`;
+            return 'Message';
+        }
+
+        function replyAuthorLabel(message) {
+            return message && message.sender === 'visitor' ? 'You' : @json($chatSupportName);
+        }
+
+        function messageReplyMarkup(message) {
+            if (!message || !message.reply_to) return '';
+            const reply = message.reply_to;
+            return `<div class="message-reply"><strong>${formatMessage(replyAuthorLabel(reply))}</strong><span>${formatMessage(messagePreviewText(reply))}</span></div>`;
+        }
+
+        function setReplyingTo(message) {
+            if (!message || message.sender === 'system') return;
+            replyingTo = message;
+            replyPreviewTitle.textContent = `Replying to ${replyAuthorLabel(message)}`;
+            replyPreviewText.textContent = messagePreviewText(message);
+            replyPreview.hidden = false;
+            highlightReplyTarget(message.id);
+            messageInput.focus();
+        }
+
+        function clearReply() {
+            replyingTo = null;
+            replyPreview.hidden = true;
+            replyPreviewTitle.textContent = 'Replying to message';
+            replyPreviewText.textContent = '';
+            clearReplyHighlight();
+        }
+
+        function highlightReplyTarget(messageId) {
+            clearReplyHighlight();
+            const target = Array.from(messagesContainer.querySelectorAll('.msg-row'))
+                .find(row => String(row.dataset.messageId) === String(messageId));
+            if (!target) return;
+
+            target.classList.add('reply-target');
+            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            replyHighlightTimer = setTimeout(() => target.classList.remove('reply-target'), 2400);
+        }
+
+        function clearReplyHighlight() {
+            if (replyHighlightTimer) {
+                clearTimeout(replyHighlightTimer);
+                replyHighlightTimer = null;
+            }
+            messagesContainer.querySelectorAll('.reply-target').forEach(row => row.classList.remove('reply-target'));
         }
 
         // ── Polling & UI ──
@@ -1621,7 +1776,12 @@
                         if (isEmojiOnly(msg.message)) extraClass = ' emoji-only';
                         content = formatMessage(msg.message);
                     }
-                    row.innerHTML = `<div class="bubble${extraClass}">${content}${messageStatusMarkup(msg)}</div>`;
+                    row.innerHTML = `<div class="message-stack"><div class="bubble${extraClass}">${messageReplyMarkup(msg)}${content}${messageStatusMarkup(msg)}</div><button class="reply-message-btn" type="button" aria-label="Reply to message">↩ Reply</button></div>`;
+
+                    row.querySelector('.reply-message-btn').addEventListener('click', (event) => {
+                        event.stopPropagation();
+                        setReplyingTo(msg);
+                    });
 
                     // Tap bubble to show/hide time
                     row.addEventListener('click', () => {
@@ -1803,6 +1963,7 @@
         });
 
         removePreview.addEventListener('click', clearPreview);
+        replyPreviewClose.addEventListener('click', clearReply);
 
         newMsgPill.addEventListener('click', () => {
             messagesContainer.scrollTop = messagesContainer.scrollHeight;

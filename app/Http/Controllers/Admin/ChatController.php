@@ -155,10 +155,19 @@ class ChatController extends Controller
 
         $validated = $request->validate([
             'message' => ['nullable', 'string', 'max:5000'],
+            'reply_to_id' => ['nullable', 'integer'],
             'file' => ['nullable', 'file', 'max:10240', 'mimes:jpg,jpeg,png,gif,webp,avif,bmp,heic,heif,tif,tiff,pdf,doc,docx,xls,xlsx,csv,txt,zip'],
         ]);
 
         $messageText = trim((string) ($validated['message'] ?? ''));
+        $replyToId = isset($validated['reply_to_id']) ? (int) $validated['reply_to_id'] : null;
+        if ($replyToId !== null && !DB::table('chat_messages')
+            ->where('id', $replyToId)
+            ->where('session_id', $session->session_id)
+            ->exists()) {
+            return response()->json(['message' => 'The message you are replying to no longer exists.'], 422);
+        }
+
         if ($messageText === '' && !$request->hasFile('file')) {
             return response()->json(['message' => 'Write a message or attach a file.'], 422);
         }
@@ -169,6 +178,7 @@ class ChatController extends Controller
         $messageData = [
             'message_type' => 'text',
             'message' => $messageText !== '' ? $messageText : null,
+            'reply_to_id' => $replyToId,
         ];
 
         if ($request->hasFile('file')) {
@@ -208,7 +218,7 @@ class ChatController extends Controller
             ->where('session_id', $session->session_id)
             ->update(['last_activity' => now()]);
 
-        $message = DB::table('chat_messages')->where('id', $messageId)->first();
+        $message = $this->messageQuery()->where('m.id', $messageId)->first();
 
         return response()->json(['message' => $this->formatMessage($message)], 201);
     }
@@ -400,20 +410,10 @@ class ChatController extends Controller
 
     private function messageCollection(string $sessionId): Collection
     {
-        return DB::table('chat_messages')
-            ->select([
-                'id',
-                'sender',
-                'message',
-                'message_type',
-                'file_path',
-                'file_name',
-                'status',
-                'created_at',
-            ])
-            ->where('session_id', $sessionId)
-            ->orderBy('created_at')
-            ->orderBy('id')
+        return $this->messageQuery()
+            ->where('m.session_id', $sessionId)
+            ->orderBy('m.created_at')
+            ->orderBy('m.id')
             ->get()
             ->map(fn ($message) => $this->formatMessage($message));
     }
@@ -425,7 +425,41 @@ class ChatController extends Controller
             ? asset('public/' . ltrim($data['file_path'], '/'))
             : null;
 
+        $data['reply_to'] = !empty($data['reply_to_id']) && array_key_exists('reply_to_sender', $data)
+            && $data['reply_to_sender'] !== null
+            ? [
+                'id' => (int) $data['reply_to_id'],
+                'sender' => $data['reply_to_sender'],
+                'message' => $data['reply_to_message'],
+                'message_type' => $data['reply_to_type'],
+                'file_name' => $data['reply_to_file_name'],
+            ]
+            : null;
+
+        unset($data['reply_to_sender'], $data['reply_to_message'], $data['reply_to_type'], $data['reply_to_file_name']);
+
         return $data;
+    }
+
+    private function messageQuery()
+    {
+        return DB::table('chat_messages as m')
+            ->leftJoin('chat_messages as r', 'r.id', '=', 'm.reply_to_id')
+            ->select([
+                'm.id',
+                'm.sender',
+                'm.message',
+                'm.message_type',
+                'm.file_path',
+                'm.file_name',
+                'm.status',
+                'm.reply_to_id',
+                'm.created_at',
+                'r.sender as reply_to_sender',
+                'r.message as reply_to_message',
+                'r.message_type as reply_to_type',
+                'r.file_name as reply_to_file_name',
+            ]);
     }
 
     private function isInlineImageMime(string $mimeType): bool
