@@ -116,7 +116,7 @@ class SendMailGamesandPlayersEveryMonth extends Command
                 // $balance_load = $forms['totals']['load'];
 
             // dd($data);
-            Mail::to('mangaletamang65@gmail.com')->send(new GamersAndPlayers($forms));
+            // Mail::to('testemail@gmail.com')->send(new GamersAndPlayers($forms));
             Log::channel('spinnerBulk')->info("Custom mail sent successfully to " .' individual');
             // return redirect()->back()->withInput()->with('success', 'Mail Sent');
         } catch (\Exception $e) {

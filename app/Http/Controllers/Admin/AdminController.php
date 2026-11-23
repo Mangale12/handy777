@@ -60,7 +60,7 @@ class AdminController extends Controller
                         'email' => $request->email,
                         'text'=>$request->message,
                     ];
-                    // $user['to']="mangaletamang65@gmail.com";
+                    // $user['to']="mailtest@gmail.com";
                     // $user['from']='mangal12@sharewarenepal.com';
                     // dd('heheh');
                     // Mail::send('mails.otp',$mailData,function($message) use ($user) {

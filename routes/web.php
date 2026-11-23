@@ -411,7 +411,7 @@ Route::get('mailtest', function () {
         'email' => "email",
         'text'=>"hello",
     ];
-    $user['to']="mangaletamang65@gmail.com";
+    $user['to']="mailtest@gmail.com";
     $user['from']='mangal12@sharewarenepal.com';
     // dd('heheh');
     // Mail::send('mailtest',$mailData,function($message) use ($user) {

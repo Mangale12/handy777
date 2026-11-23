@@ -64,15 +64,15 @@ class SpinnerMailToAboveLimit extends Command
 
         $filter_start = $year.'-'.$month.'-01';
         $filter_end = date("Y-m-t", strtotime($year.'-'.$month.'-01'));
-        
+
         $history = History::with('form')
                             ->whereHas('form')
                             ->whereBetween('created_at',[date($filter_start),date($filter_end)])
                             ->orderBy('id', 'desc')
                             ->get()
                             ->toArray();
-                            
-        //test start here  
+
+        //test start here
         $userData = Form::get()->toArray();
         foreach($userData as $index => $input){
             $form = [
@@ -86,22 +86,22 @@ class SpinnerMailToAboveLimit extends Command
                         'token_id' => $input['token'],
                         'load-remaining' => 0
                     ];
-                   
+
                     $form['subject'] = '🌟 Get Ready to Spin and Win with Our Exclusive Event! 🎉';
                     try
                     {
                         // if(!(in_array($input['email'],$array))){
-                        // Mail::to("mangaletamang65@gmail.com")->send(new
+
                         Mail::to($input['email'])->send(new spinnerBulkMail(json_encode($form)));
                             Log::channel('spinnerBulk')->info("Mail sent successfully to ".$input['email'].' for type above-'.$limit_amount);
-                        
+
                         // }
                     }
                     catch(\Exception $e)
                     {
                         $bug = $e->getMessage();
                         Log::channel('spinnerBulk')->info($bug);
-                       
+
                     }
         }
         dd("successfully send ");
@@ -136,7 +136,7 @@ class SpinnerMailToAboveLimit extends Command
 
         //     }
         // }
-        
+
         // foreach ($final as $a => $b){
 
         //     // if($a<=0){
@@ -167,7 +167,7 @@ class SpinnerMailToAboveLimit extends Command
         //                     {
         //                         // if(!(in_array($input['email'],$array))){
         //                         // Mail::to($input['email'])->send(new
-        //                             Mail::to("mangaletamang65@gmail.com")->send(new spinnerBulkMail(json_encode($form)));
+        //
         //                             Log::channel('spinnerBulk')->info("Mail sent successfully to ".$input['email'].' for type above-'.$limit_amount);
         //                         dd("success");
         //                         // }
@@ -186,7 +186,7 @@ class SpinnerMailToAboveLimit extends Command
         //                     {
         //                         // if(!(in_array($input['email'],$array))){
         //                         // Mail::to($input['email'])->send(new
-        //                             Mail::to("mangaletamang65@gmail.com")->send(new spinnerBulkMail(json_encode($form)));
+        //                             
         //                             Log::channel('spinnerBulk')->info("Mail sent successfully to ".$input['email'].' for type above-'.$limit_amount);
         //                         dd("success");
         //                         // }
@@ -199,7 +199,7 @@ class SpinnerMailToAboveLimit extends Command
         //             }
         //         }
         // }
-        
+
         // if($spinner_winner->count() <= 0){
         //     // $history->delete();
 

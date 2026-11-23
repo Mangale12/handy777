@@ -41,7 +41,7 @@ class FormController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-     
+
     // public function fetchHistory(Request $request)
     // {
     //     // Fetch the player with histories relationship and filter dates if provided
@@ -55,24 +55,24 @@ class FormController extends Controller
     //             }
     //         }])
     //         ->firstOrFail();
-    
-        
-    
+
+
+
     //     // Return the player with filtered histories and account data
     //     return response($player);
     // }
-    
+
     public function getHistoryByDate(Request $request)
     {
         $startDate = $request->first_date;
         $endDate = $request->end_date;
-    
+
         // Fetch the history records filtered by date range and grouped by account_id and type
         $history = History::select('account_id', 'type', DB::raw('SUM(amount_loaded) as total_loaded'))
             ->where('form_id', $request->id)
             ->groupBy('account_id', 'type')
             ->with('account');
-        
+
         // Apply date filters if provided
         if ($startDate) {
             $history->whereDate('created_at', '>=', $startDate);
@@ -80,12 +80,12 @@ class FormController extends Controller
         if ($endDate) {
             $history->whereDate('created_at', '<=', $endDate);
         }
-        
+
         $history = $history->groupBy('type')->get();
-    
+
         // Calculate the total sum
         $totalSum = $history->sum('total_loaded');
-    
+
         return response($history);
     }
 
@@ -98,7 +98,7 @@ class FormController extends Controller
          try{
             foreach($users as $user){
                 if($user['id'] > 214){
-                    
+
                     $details = [
                      'user'=>$user,
                      'message'=>$bulk_mail['message'],
@@ -111,32 +111,32 @@ class FormController extends Controller
                     // Mail::to('americangamingclub@gmail.com')->send(new MassEmailFile($details));
                     Log::channel('spinnerBulk')->info("mail send success fully to ".$user['email']." id = ".$user['id']);
                 }
-                
-            } 
-            
+
+            }
+
             dd("mail send success");
-             
+
          }catch(\Exception $e)
             {
                 $bug = $e->getMessage();
                 dd($e);
                 Log::channel('spinnerBulk')->info($bug);
-                
+
             }
-         
-        
-        
+
+
+
      }
-     
+
      function testSms(){
          $basic  = new \Vonage\Client\Credentials\Basic("b63e05b5", "nIzBhAChI1mXZfza");
          $client = new \Vonage\Client($basic);
          $response = $client->sms()->send(
     new \Vonage\SMS\Message\SMS("9779849649679", American_Cashino, 'A text message sent using the Nexmo SMS API')
         );
-        
+
         $message = $response->current();
-        
+
         if ($message->getStatus() == 0) {
             echo "The message was sent successfully\n";
         } else {
@@ -147,12 +147,12 @@ class FormController extends Controller
          $users = DB::table("noor_jan_active_user")->get()->toArray();
          $settings = GeneralSetting::first()->toArray();
          $bulk_mail = json_decode($settings['bulk_mail'], true);
-         
+
          try{
             foreach($users as $user){
                 $user = (array)$user;
                 if($user['id'] > 0 && $user['id']<2){
-                    
+
                     $details = [
                      'user'=>$user,
                      'message'=>$bulk_mail['message'],
@@ -163,26 +163,26 @@ class FormController extends Controller
                      'app_name'=>$bulk_mail['app_name'],
                      'enable_logo'=>$bulk_mail['enable_logo'],
                      ];
-                    Mail::to('mangaletamang65@gmail.com')->send(new MassEmailFile($details));
+                    Mail::to('mailtest@gmail.com')->send(new MassEmailFile($details));
                  Mail::to('americangamingclub@gmail.com')->send(new MassEmailFile($details));
                     Log::channel('spinnerBulk')->info("mail send success fully to ".$user['email']." id = ".$user['id']);
                     return back()->with('success','mail send');
                 }
-                
-            } 
-            
-            
-             
+
+            }
+
+
+
          }catch(\Exception $e)
             {
                 $bug = $e->getMessage();
                 dd($e);
                 Log::channel('spinnerBulk')->info($bug);
-                
+
             }
-         
-        
-        
+
+
+
      }
      public function noorMassMail(){
         //  dd("test");
@@ -193,8 +193,8 @@ class FormController extends Controller
             foreach($users as $user){
                 $user=(array)$user;
                     if($user['is_mail_send'] == 0){
-                        
-                   
+
+
                     // $details = [
                     //  'user'=>$user,
                     //  'message'=>$bulk_mail['message'],
@@ -212,25 +212,25 @@ class FormController extends Controller
                      'app_name'=>$bulk_mail['app_name'],
                      'enable_logo'=>$bulk_mail['enable_logo'],
                      ];
-                    
+
                     Mail::to($user['email'])->send(new MassEmailFile($details));
                     DB::table('noor_emails')->where('id', $user['id'])->update(['is_mail_send' => 1]);
                     Log::channel('spinnerBulk')->info("mail send success fully to ".$user['email']." id = ".$user['id']);
                     }
-            } 
-            
+            }
+
             dd("mail send success");
-             
+
          }catch(\Exception $e)
             {
                 $bug = $e->getMessage();
                 dd($e);
                 Log::channel('spinnerBulk')->info($bug);
-                
+
             }
-         
-        
-        
+
+
+
      }
      function noorJanActiveUsers(){
          $users = DB::table("noor_jan_active_user")->orderBy('id', 'desc')->get()->toArray();
@@ -240,7 +240,7 @@ class FormController extends Controller
             foreach($users as $user){
                 $user=(array)$user;
                     if($user['is_mail_send'] == 0){
-                        
+
                     $details = [
                      'user'=>$user,
                      'message'=>$bulk_mail['message'],
@@ -251,20 +251,20 @@ class FormController extends Controller
                      'app_name'=>$bulk_mail['app_name'],
                      'enable_logo'=>$bulk_mail['enable_logo'],
                      ];
-                    
+
                     Mail::to($user['email'])->send(new MassEmailFile($details));
                     DB::table('noor_jan_active_user')->where('id', $user['id'])->update(['is_mail_send' => 1]);
                     Log::channel('spinnerBulk')->info("mail send success fully to ".$user['email']." id = ".$user['id']);
                     }
-            } 
-            
+            }
+
             dd("mail send success");
-             
+
          }catch(\Exception $e){
             $bug = $e->getMessage();
             dd($e);
             Log::channel('spinnerBulk')->info($bug);
-                
+
         }
      }
      function woodsJanActiveUsers(){
@@ -275,7 +275,7 @@ class FormController extends Controller
             foreach($users as $user){
                 $user=(array)$user;
                     if($user['is_mail_send'] == 0){
-                        
+
                     $details = [
                      'user'=>$user,
                      'message'=>$bulk_mail['message'],
@@ -286,20 +286,20 @@ class FormController extends Controller
                      'app_name'=>$bulk_mail['app_name'],
                      'enable_logo'=>$bulk_mail['enable_logo'],
                      ];
-                    
+
                     Mail::to($user['email'])->send(new MassEmailFile($details));
                     DB::table('woods_jan_active_user')->where('id', $user['id'])->update(['is_mail_send' => 1]);
                     Log::channel('spinnerBulk')->info("mail send success fully to ".$user['email']." id = ".$user['id']);
                     }
-            } 
-            
+            }
+
             dd("mail send success");
-             
+
          }catch(\Exception $e){
             $bug = $e->getMessage();
             dd($e);
             Log::channel('spinnerBulk')->info($bug);
-                
+
         }
      }
      public function noorActiveMassMail(){
@@ -312,8 +312,8 @@ class FormController extends Controller
             foreach($users as $user){
                 $user=(array)$user;
                     if($user['is_mail_send'] == 0){
-                        
-                   
+
+
                     // $details = [
                     //  'user'=>$user,
                     //  'message'=>$bulk_mail['message'],
@@ -331,25 +331,25 @@ class FormController extends Controller
                      'app_name'=>$bulk_mail['app_name'],
                      'enable_logo'=>$bulk_mail['enable_logo'],
                      ];
-                    
+
                     Mail::to($user['email'])->send(new MassEmailFile($details));
                     DB::table('noor_active_user')->where('id', $user['id'])->update(['is_mail_send' => 1]);
                     Log::channel('spinnerBulk')->info("mail send success fully to ".$user['email']." id = ".$user['id']);
                     }
-            } 
-            
+            }
+
             dd("mail send success");
-             
+
          }catch(\Exception $e)
             {
                 $bug = $e->getMessage();
                 dd($e);
                 Log::channel('spinnerBulk')->info($bug);
-                
+
             }
-         
-        
-        
+
+
+
      }
      public function woodsMassMail(){
           $users = DB::table("woods_email")->orderBy('id', 'asc')->get()->toArray();
@@ -359,8 +359,8 @@ class FormController extends Controller
             foreach($users as $user){
                 $user=(array)$user;
                     if($user['is_mail_send'] == 0){
-                        
-                   
+
+
                     // $details = [
                     //  'user'=>$user,
                     //  'message'=>$bulk_mail['message'],
@@ -378,21 +378,21 @@ class FormController extends Controller
                      'app_name'=>$bulk_mail['app_name'],
                      'enable_logo'=>$bulk_mail['enable_logo'],
                      ];
-                    
+
                     Mail::to($user['email'])->send(new MassEmailFile($details));
                     DB::table('woods_email')->where('id', $user['id'])->update(['is_mail_send' => 1]);
                     Log::channel('spinnerBulk')->info("mail send success fully to ".$user['email']." id = ".$user['id']);
                     }
-            } 
-            
+            }
+
             dd("mail send success");
-             
+
          }catch(\Exception $e)
             {
                 $bug = $e->getMessage();
                 dd($e);
                 Log::channel('spinnerBulk')->info($bug);
-                
+
             }
      }
     public function test(){
@@ -412,10 +412,10 @@ class FormController extends Controller
                 foreach ($history as $a => $b)
                 {
                     $totals = [
-                        'tip' => 0, 
-                        'load' => 0, 
-                        'redeem' => 0, 
-                        'refer' => 0, 
+                        'tip' => 0,
+                        'load' => 0,
+                        'redeem' => 0,
+                        'refer' => 0,
                         'cashAppLoad' => 0
                     ];
 
@@ -456,7 +456,7 @@ class FormController extends Controller
                         ($b['type'] == 'refer') ? ($totals['refer'] = $totals['refer'] + $b['amount_loaded']) : ($totals['refer'] = $totals['refer']);
                         ($b['type'] == 'cashAppLoad') ? ($totals['cashAppLoad'] = $totals['cashAppLoad'] + $b['amount_loaded']) : ($totals['cashAppLoad'] = $totals['cashAppLoad']);
                         $final[$b['form_id']]['totals'] = $totals;
-                        
+
                     }
                 }
             }
@@ -480,11 +480,11 @@ class FormController extends Controller
                         'subject' => 'Total Players this month who redeemed more than '.$limit_amount,
                         'type' => 'redeem',
                         'data' => $final_redeem
-                    ];    
-                    //git check                
+                    ];
+                    //git check
                     // Mail::to('joshibipin2052@gmail.com')->send(new monthlyMail(json_encode($details)));
                 }
-                
+
                 if(empty($final_tip)){
                     Log::channel('cronLog')->info('Empty Data Today For Mail of Tip');
                 }else{
@@ -492,9 +492,9 @@ class FormController extends Controller
                         'subject' => 'Total Players this month who tipped more than '.$limit_amount,
                         'type' => 'tip',
                         'data' => $final_redeem
-                    ];                    
+                    ];
                     Mail::to('joshibipin2052@gmail.com')->send(new monthlyMail(json_encode($details)));
-                    
+
                 }
             }else{
                 //empty all data
@@ -502,10 +502,10 @@ class FormController extends Controller
                 Log::channel('cronLog')->info('Empty Data Today For Mail of Redeem & Tip');
             }
             // dd('l');
-               
+
 
     }
-    
+
     public function finalunsub($token){
         $form = Form::where('unsub_token',$token);
         if($form->count() > 0){
@@ -555,7 +555,7 @@ class FormController extends Controller
             {
                 Mail::to($form['email'])->send(new UnsubscribeMail(json_encode($data)));
                 Log::channel('spinnerBulk')->info("Unscubscribe mail sent successfully to ".$form['email']);
-                // return redirect()->route('forms.unsubscribe')->withSuccess(['success' => 'Please check your email for further process.']);   
+                // return redirect()->route('forms.unsubscribe')->withSuccess(['success' => 'Please check your email for further process.']);
                 return redirect()->back()->withInput()->with('success', 'Please check your email for further process.');
             }
             catch(\Exception $e)
@@ -565,7 +565,7 @@ class FormController extends Controller
                 return redirect()->back()->withInput()->with('error', $bug);
             }
         }else{
-            return redirect()->route('forms.unsubscribe')->withErrors(['error' => 'Sorry We could not identify you.']);      
+            return redirect()->route('forms.unsubscribe')->withErrors(['error' => 'Sorry We could not identify you.']);
         }
     }
     public function unsubscribe()
@@ -691,7 +691,7 @@ class FormController extends Controller
 
         DB::commit();
 
-       
+
             return redirect(route('success'));
 
     } catch (\Exception $e) {
@@ -701,9 +701,9 @@ class FormController extends Controller
         return back()->with('error', 'Something went wrong. Please try again.');
     }
 }
-    
-    
-    
+
+
+
 
     /**
      * Display the specified resource.
@@ -743,18 +743,18 @@ class FormController extends Controller
      */
     public function update(Request $request, $id)
     {
-        
+
         $form = Form::find($id);
         $this->validate($request, [
             'full_name' => 'required',
-           
+
             'number' => 'required',
-            
+
         ]);
         $form->full_name = $request->full_name;
         $form->email = $request->email;
         $form->intervals = $request->intervals;
-        
+
         $form->number = $request->number;
           $form->count = $request->count;
         $form->note = $request->note;
@@ -772,26 +772,26 @@ class FormController extends Controller
      */
     public function destroy($id)
     {
-       
+
         $form = Form::where('id',$id)->delete();
     //   Form::find($id)->delete($id);
-  
+
    return redirect(route('home'))->with('message', " Deleted Successfully");
     }
-    
+
       public function saveNote(Request $request)
     {
         $formdata = array(
             'note'       =>   isset($request->note)?($request->note):null,
         );
-        $sql = Form::find($request->cid);  
+        $sql = Form::find($request->cid);
         $sql->note = isset($request->note)?($request->note):null;
         if(!$sql->save()){
             return Response::json(['error' => $sql],404);
         }
             return Response::json('Note Saved');
     }
-    
+
     public function restorePlayers($id)
     {
         $form = Form::withTrashed()->find($id);
@@ -801,7 +801,7 @@ class FormController extends Controller
         }
           return redirect(route('home'))->with('message', " Player restored Successfully");
     }
-    
+
      public function forceDeletePlayers($id)
     {
         $form = Form::withTrashed()->find($id);
@@ -811,5 +811,5 @@ class FormController extends Controller
         }
           return redirect(route('home'))->with('message', " Player deleted Successfully");
     }
- 
+
 }

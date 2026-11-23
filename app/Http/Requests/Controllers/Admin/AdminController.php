@@ -29,7 +29,7 @@ class AdminController extends Controller
         $front_setting = FrontSetting::first();
         return view('admin.login_form',compact('front_setting'));
     }
-    
+
     function changePassword(Request $request){
         $front_setting = FrontSetting::first();
         if(Route::is('admin.login.change_password')){
@@ -61,7 +61,7 @@ class AdminController extends Controller
                         'email' => $request->email,
                         'text'=>$request->message,
                     ];
-                    // $user['to']="mangaletamang65@gmail.com";
+                    // $user['to']="mailtest@gmail.com";
                     // $user['from']='mangal12@sharewarenepal.com';
                     // dd('heheh');
                     // Mail::send('mails.otp',$mailData,function($message) use ($user) {
@@ -174,7 +174,7 @@ class AdminController extends Controller
        if(!is_null($account))
        {
         $account->restore();
-       }       
+       }
        return redirect()->route('admin.games')->with('success','Game has been deleted');
 
    }
@@ -185,7 +185,7 @@ class AdminController extends Controller
        if(!is_null($account))
        {
         $account->forceDelete();
-       }       
+       }
        return redirect()->route('admin.games')->with('success','Game has been deleted');
 
    }
@@ -193,7 +193,7 @@ class AdminController extends Controller
 
    public function updateStatus(Request $request)
    {
-       
+
        $account = Account::find($request->id);
        $account->status = $request->status;
        if($account->status == 1){

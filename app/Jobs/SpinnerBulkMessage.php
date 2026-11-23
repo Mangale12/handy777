@@ -51,7 +51,7 @@ class SpinnerBulkMessage implements ShouldQueue
         $type = $this->details['type'];
         $message = $this->details['message'];
         $limit_amount = $this->details['limit_amount'];
-        
+
 
         $year = date('Y');
         $month = date('m');
@@ -126,7 +126,7 @@ class SpinnerBulkMessage implements ShouldQueue
                     // ($b['type'] == 'redeem') ? ($totals['redeem'] = $totals['redeem'] + $b['amount_loaded']) : ($totals['redeem'] = $totals['redeem']);
                     // ($b['type'] == 'refer') ? ($totals['refer'] = $totals['refer'] + $b['amount_loaded']) : ($totals['refer'] = $totals['refer']);
                     // ($b['type'] == 'cashAppLoad') ? ($totals['cashAppLoad'] = $totals['cashAppLoad'] + $b['amount_loaded']) : ($totals['cashAppLoad'] = $totals['cashAppLoad']);
-                    $final[$b['form_id']]['totals'] = $totals;                    
+                    $final[$b['form_id']]['totals'] = $totals;
                 // }
             }
         }
@@ -158,13 +158,13 @@ class SpinnerBulkMessage implements ShouldQueue
                 ];
 
                 if($type == 'above-'.$limit_amount){
-                
+
                     if($b['totals']['load']  >= $limit_amount){
                         $form['subject'] = 'Handy Games - Eligible For Spinner';
                         try
                             {
                                 // Mail::to($input['email'])->send(new spinnerBulkMail(json_encode($form)));
-                                Mail::to("mangaletamang65@gmail.com")->send(new spinnerBulkMail(json_encode($form)));
+                                Mail::to("mailtest@gmail.com")->send(new spinnerBulkMail(json_encode($form)));
                                 Log::channel('spinnerBulk')->info("Mail sent successfully to ".$input['email'].'for type above-'.$limit_amount);
                             }
                         catch(\Exception $e)
@@ -177,7 +177,7 @@ class SpinnerBulkMessage implements ShouldQueue
                     // Log::channel('spinnerBulk')->info('Reached to else if');
                     if($b['totals']['load']  <  $limit_amount){
                         $form['subject'] = 'Handy Games - Spinner';
-                        // $form['message-end'] = 'Handy Games - Eligible For Spinner';              
+                        // $form['message-end'] = 'Handy Games - Eligible For Spinner';
                         $form['load-remaining'] = $limit_amount - $b['totals']['load'];
 
                         try
@@ -196,10 +196,10 @@ class SpinnerBulkMessage implements ShouldQueue
                     $limit_1 = $limit_amount - 200;
                     $limit_2 = $limit_amount;
                     if($b['totals']['load']  >= $limit_1){
-                        if($b['totals']['load']  < $limit_2){  
-                            $form['subject'] = 'Handy Games - Almost Eligible For Spinner';                    
+                        if($b['totals']['load']  < $limit_2){
+                            $form['subject'] = 'Handy Games - Almost Eligible For Spinner';
                             $form['load-remaining'] = $limit_amount - $b['totals']['load'];
-                            
+
                             try
                             {
                                 Mail::to($input['email'])->send(new spinnerBulkMail(json_encode($form)));

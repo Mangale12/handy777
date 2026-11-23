@@ -609,7 +609,7 @@ public function tableop()
                     ->toArray();
         }
         // orderBy('id','desc')->
-       
+
         // dd($trashed);
         return view('newLayout.gamers', compact('total', 'forms', 'trashed'));
     }
@@ -1124,20 +1124,20 @@ public function tableop()
   public function spinner()
     {
         // Set the comparison amount for filtering players
-       
+
         $compare_amount = $this->limit_amount;
-    
+
         try {
             // Get the current year and calculate the previous month
             $year = date('Y');
             $month = date('m') != 1 ? date('m') - 1 : 12;
             $year = ($month == 12) ? $year - 1 : $year;
             $month = str_pad($month, 2, '0', STR_PAD_LEFT);
-    
+
             // Set the filter range for the previous month's start and end dates
             $filter_start = "{$year}-{$month}-01";
             $filter_end = date("Y-m-t", strtotime($filter_start));
-    
+
             // Fetch history records where amount was loaded within the previous month
             $historys = History::where('type', 'load')
                                 ->whereBetween('created_at', [$filter_start, $filter_end])
@@ -1146,16 +1146,16 @@ public function tableop()
                                 ->with('form')
                                 ->whereHas('form')
                                 ->get();
-    
+
             // Get the count of winners for the previous month
             $winners_list = SpinnerWinner::whereBetween('created_at', [$filter_start, $filter_end])->count();
-    
+
             // Prepare the final result array
             $final = [
                 'players_list' => [],
                 'winner_info' => []
             ];
-    
+
             // If there are any history records
             if ($historys->count() > 0) {
                 foreach ($historys as $history) {
@@ -1166,12 +1166,12 @@ public function tableop()
                         ];
                     }
                 }
-    
+
                 // If eligible players are found
                 if (!empty($final['players_list'])) {
                     $random_player_index = array_rand($final['players_list']);
                     $selected_player = $final['players_list'][$random_player_index];
-    
+
                     // If no winner has been selected for the previous month, create a new one
                     if ($winners_list <= 0) {
                         $f1 = Form::find($selected_player['player_id']);
@@ -1184,14 +1184,14 @@ public function tableop()
                         // If a winner already exists for the previous month, fetch it
                         $winner = SpinnerWinner::whereBetween('created_at', [$filter_start, $filter_end])->first();
                     }
-    
+
                     // Set winner information
                     $final['winner_info'] = [
                         'player_name' => $winner->full_name,
                         'player_id' => $winner->form_id
                     ];
                 }
-    
+
                 // Special case for "Prasun Dahal"
                 if (strtotime(date('Y-m-d')) == strtotime(date("{$year}-04-16"))) {
                     $prasun = Form::where('full_name', 'Prasun Dahal')->first();
@@ -1200,7 +1200,7 @@ public function tableop()
                             'player_name' => $prasun->full_name,
                             'player_id' => $prasun->id
                         ];
-    
+
                         $final['winner_info'] = [
                             'player_name' => $prasun->full_name,
                             'player_id' => $prasun->id
@@ -1208,7 +1208,7 @@ public function tableop()
                     }
                 }
             }
-    
+
             // Fetch old winners, excluding those from the current or previous month
             $old_winners = SpinnerWinner::limit(5)->get();
             $month = intval(date('m'));
@@ -1216,11 +1216,11 @@ public function tableop()
                 $winner_month = intval(date('m', strtotime($winner->created_at)));
                 return !in_array($winner_month, [$month, $month - 1]);
             })->values()->toArray();
-    
+
             // Fetch settings and current date
             $settings = \App\Models\GeneralSetting::first();
             $carbon_now = Carbon::now();
-            
+
             $formData = Form::get();
             foreach($formData as $key => $data){
                 $final['players_list'][] = [
@@ -1232,10 +1232,10 @@ public function tableop()
                             'player_name' => 'Maryannprive',
                             'player_id' => 1361
                         ];
-            
+
             // Return the view with data
             return view('spinner', compact('final', 'old_list', 'settings', 'carbon_now'));
-    
+
         } catch (\Exception $e) {
             // Handle exceptions and return an error response
             return response()->json(['error' => $e->getMessage()], 404);
@@ -1281,7 +1281,7 @@ public function tableop()
                 $currentPlayer = [];
             if (($historys->count()) > 0)
             {
-                
+
                 $historys = $historys->toArray();
                 foreach ($historys as $a => $b)
                 {
@@ -1388,8 +1388,8 @@ public function tableop()
             }
             $settings = \App\Models\GeneralSetting::first();
             $carbon_now = Carbon::now();
-            
-            
+
+
             $formData = Form::get();
             foreach($formData as $key => $data){
                 $final['players_list'][] = [
@@ -1412,7 +1412,7 @@ public function tableop()
     {
         $currentPlayer = [];
         //spinner runs on 10 so we bring data of previous month
-        
+
         $form_token = Form::where('token',$token)->count();
         if($form_token > 0 ){
             $form_token = Form::where('token',$token)->first('id')->toArray();
@@ -1441,17 +1441,17 @@ public function tableop()
                                 ->whereHas('form')
                                 ->get();
             // dd($filter_start,$filter_end,$historys);
-    
+
             $winners_list = SpinnerWinner::whereBetween('created_at',[date($filter_start),date($filter_end)])->count();
-    
+
             $final = [
                 'players_list' => [],
                 'winner_info' => []
             ];
-            
+
             if (($historys->count()) > 0)
             {
-                
+
                 $historys = $historys->toArray();
                 foreach ($historys as $a => $b)
                 {
@@ -1492,12 +1492,12 @@ public function tableop()
                     }
                 }
                 // if(){
-                    
+
                 // }
                 if(!empty($final['players_list'])){
-                        
+
                     $shuffle = array_rand($final['players_list']);
-    
+
                     if($winners_list <= 0){
                         $f1 = Form::where('id',$final['players_list'][$shuffle]['player_id'])->first();
                         $winner = SpinnerWinner::create([
@@ -1513,8 +1513,8 @@ public function tableop()
                         'player_id' =>  $winner->form_id
                     ];
                 }
-                
-                // dd($final);  
+
+                // dd($final);
                 //prasun dahal
                 $year = date('Y');
                 $month = 4;
@@ -1528,17 +1528,17 @@ public function tableop()
                 //             'player_id' => $prasun['id']
                 //         ];
                 //         array_push($final['players_list'], $z);
-    
+
                 //         $final['winner_info'] =[
                 //             'player_name' => $prasun['full_name'],
                 //             'player_id' =>  $prasun['id']
                 //         ];
                 //     }
-                    
+
                 // }
                 //prasun dahal
             }
-            
+
             $old_winners = SpinnerWinner::count();
             if($old_winners > 0){
                 $old_winners = SpinnerWinner::limit(5)->get()->toArray();
@@ -1558,7 +1558,7 @@ public function tableop()
             }
             $settings = \App\Models\GeneralSetting::first();
             $carbon_now = Carbon::now();
-            
+
             $formData = Form::get();
             $player_name = Form::where('token', $token)->first();
             foreach($formData as $key => $data){
@@ -1813,7 +1813,7 @@ public function tableop()
         // Log::channel('cronLog')->info('This is testing for sharewarenepal.com!'
         // $accountBalance = $account->balance;
         // $userBalance = $user->balance;
-       
+
         if ($user->balance != 1)
         {
             $currentMonth = date('m');
@@ -1838,9 +1838,9 @@ public function tableop()
                     // return Response::json($form);
                     if (!empty($form['email']))
                     {
-                        Mail::to("mangaletamang65@gmail.com")->send(new crossedPlayers(json_encode($form)));
-                        
-                        
+                        Mail::to("mailtest@gmail.com")->send(new crossedPlayers(json_encode($form)));
+
+
                     }
                     // if(!empty($form['phone'])){
                     $boyname = $form['full_name'];
@@ -2258,15 +2258,15 @@ $old=null;
     {
         // Base query for players
         $query = Form::query();
-        
+
         // Get all players for the dropdown
         $allPlayers = Form::orderBy('full_name')->get(['id', 'full_name']);
-        
+
         // Filter by player id if provided
         if ($request->filled('player_id')) {
             $query->where('id', $request->player_id);
         }
-        
+
         // Get filtered players with their histories
         $players = $query->with(['histories' => function($q) use ($request) {
             // Apply date filters to histories
@@ -2279,11 +2279,11 @@ $old=null;
             }
             $q->with('game:id,name');
         }])->get();
-        
+
         // Calculate totals for each player
         $totals = $players->map(function($player) {
             $histories = $player->histories;
-            
+
             return [
                 'player' => $player,
                 'total_load' => $histories->where('type', 'load')->sum('amount_loaded'),
@@ -2292,7 +2292,7 @@ $old=null;
                 'total_refer' => $histories->where('type', 'refer')->sum('amount_loaded'),
             ];
         });
-        
+
         return view('newLayout.players_load_details', compact('totals', 'allPlayers'));
     }
 
@@ -2927,7 +2927,7 @@ $old=null;
         // dd($grouped);
         return view('newLayout.redeem-history', compact('doubt','countVerified','status','grouped', 'month', 'year', 'form_games','total', 'all_months','forms','games','game_categories','sel_cat'));
     }
-    
+
     public function recursiveCheck($new,$redeem){
         $newRedeem = 0;
         // dd('asd');
@@ -3296,7 +3296,7 @@ $old=null;
             ->get()
             ->toArray();
         }
-        
+
         $final = [];
         if (!empty($history))
         {
@@ -3970,7 +3970,7 @@ $old=null;
     }
     public function gameUpdate(Request $request, $id)
     {
-        
+
         try
         {
             $form = Account::findOrFail($id);
@@ -4195,10 +4195,10 @@ $old=null;
         //                     ->orderBy('id', 'desc')
         //                     ->get()
         //                     ->toArray();
-        
+
         $history = History::where('type', 'load')
                                 // ->where('created_at', '>', Carbon::now()
-                                // ->subDays(30))                                
+                                // ->subDays(30))
                                 ->whereBetween('created_at',[date($filter_start),date($filter_end)])
                                 ->select([DB::raw("SUM(amount_loaded) as total") , 'form_id as form_id'])
                                 ->groupBy('form_id')
@@ -4207,7 +4207,7 @@ $old=null;
                                 ->get()->toArray();
         // try
         // {
-             
+
         foreach($history as $history){
             $form = [
                     'name' => $history['form']['full_name'],
@@ -4220,12 +4220,12 @@ $old=null;
                     'token_id' => $histry['form']['token'],
                     'load-remaining' => 0
                 ];
-            Mail::to("mangaletamang65@gmail.com")->send(new spinnerBulkMail(json_encode($form)));
+            Mail::to("mailtest@gmail.com")->send(new spinnerBulkMail(json_encode($form)));
             Log::channel('spinnerBulk')->info("Mail sent successfully to ".$history['form']['email'].'for type above-'.$limit_amount);
         }
         return back()->with("success","Mail send success");
             // Mail::to($input['email'])->send(new spinnerBulkMail(json_encode($form)));
-            
+
         // }catch(\Exception $e)
         // {
         //     $bug = $e->getMessage();
@@ -4275,7 +4275,7 @@ $old=null;
                     // ($b['type'] == 'redeem') ? ($totals['redeem'] = $totals['redeem'] + $b['amount_loaded']) : ($totals['redeem'] = $totals['redeem']);
                     // ($b['type'] == 'refer') ? ($totals['refer'] = $totals['refer'] + $b['amount_loaded']) : ($totals['refer'] = $totals['refer']);
                     // ($b['type'] == 'cashAppLoad') ? ($totals['cashAppLoad'] = $totals['cashAppLoad'] + $b['amount_loaded']) : ($totals['cashAppLoad'] = $totals['cashAppLoad']);
-                    $final[$b['form_id']]['totals'] = $totals;                    
+                    $final[$b['form_id']]['totals'] = $totals;
                 // }
             }
         }
@@ -4307,13 +4307,13 @@ $old=null;
                 ];
 
                 if($type == 'above-'.$limit_amount){
-                
+
                     if($b['totals']['load']  >= $limit_amount){
                         $form['subject'] = 'Handy Games - Eligible For Spinner';
                         try
                             {
                                 // Mail::to($input['email'])->send(new spinnerBulkMail(json_encode($form)));
-                                Mail::to("mangaletamang65@gmail.com")->send(new spinnerBulkMail(json_encode($form)));
+                                Mail::to("mailtest@gmail.com")->send(new spinnerBulkMail(json_encode($form)));
                                 Log::channel('spinnerBulk')->info("Mail sent successfully to ".$input['email'].'for type above-'.$limit_amount);
                             }
                         catch(\Exception $e)
@@ -4326,7 +4326,7 @@ $old=null;
                     // Log::channel('spinnerBulk')->info('Reached to else if');
                     if($b['totals']['load']  <  $limit_amount){
                         $form['subject'] = 'Handy Games - Spinner';
-                        // $form['message-end'] = 'Noor Games - Eligible For Spinner';              
+                        // $form['message-end'] = 'Noor Games - Eligible For Spinner';
                         $form['load-remaining'] = $limit_amount - $b['totals']['load'];
 
                         try
@@ -4345,10 +4345,10 @@ $old=null;
                     $limit_1 = $limit_amount - 200;
                     $limit_2 = $limit_amount;
                     if($b['totals']['load']  >= $limit_1){
-                        if($b['totals']['load']  < $limit_2){  
-                            $form['subject'] = 'Handy Games - Almost Eligible For Spinner';                    
+                        if($b['totals']['load']  < $limit_2){
+                            $form['subject'] = 'Handy Games - Almost Eligible For Spinner';
                             $form['load-remaining'] = $limit_amount - $b['totals']['load'];
-                            
+
                             try
                             {
                                 Mail::to($input['email'])->send(new spinnerBulkMail(json_encode($form)));
@@ -4667,24 +4667,24 @@ $old=null;
             $limit_amount = $this->limit_amount;
     $pdf = Pdf::loadView('gamersgamepdf',compact('final'));
     Storage::put('pdf/pdf1.pdf', $pdf->output());
-    $data["email"] = "mangaletamang65@gmail.com";
+    $data["email"] = "mailtest@gmail.com";
         $data["title"] = "From ItSolutionStuff.com";
         $data["body"] = "This is Demo";
- 
+
         $files = [
             public_path('pdf/pdf1.pdf'),
         ];
-  
+
         Mail::send('gamersgamemail', $data, function($message)use($data, $files) {
             $message->to($data["email"], $data["email"])
                     ->subject($data["title"]);
- 
+
             foreach ($files as $file){
                 $message->attach($file);
             }
-            
+
         });
- 
+
         dd('Mail sent successfully');
     return $pdf->stream();
       }
@@ -4960,7 +4960,7 @@ $old=null;
                     $image->move(public_path('uploads/'),$background_name);
                     $background_image = $background_name;
                 }
-                
+
                 $bulk_mail = [
                     'subject'=>$request->bulk_mail_subject,
                     'message'=>$request->bulk_mail_message,
@@ -4970,7 +4970,7 @@ $old=null;
                     'app_name'=>$request->app_name,
                     'enable_logo'=>$request->enable_logo ? '1' : '0',
                     ];
-                
+
                 $settings = GeneralSetting::first()->update([
                     'bonus_report_emails' => ($request->bonus_report_emails[0] != null)?$request->bonus_report_emails[0]:null,
                     'new_register_mail' => ($request->new_register_mail[0] != null)?$request->new_register_mail[0]:null,
@@ -5040,11 +5040,11 @@ $old=null;
         return view('newLayout.userDetails', compact('form_games','form'));
 
     }
-    
+
     // public function userDetailsApi(Request $request, $id)
     // {
     //     $form = Form::where('messenger_id',$id)->first();
-    
+
     //     if (!$form) {
     //         return response()->json([
     //             'success' => false,
@@ -5062,10 +5062,10 @@ $old=null;
     //             'message' => 'No games found for this user',
     //         ], 404);
     //     }
-    
+
     //     // Generate JWT Token for the user (Form model)
     //     $token = JWTAuth::fromUser($form);
-    
+
     //     return response()->json([
     //         'success' => true,
     //         'message' => 'User details fetched successfully',
@@ -5085,37 +5085,37 @@ $old=null;
     {
         try {
             $form = Form::where('messenger_id', $id)->first();
-    
+
             if (!$form) {
                 return response()->json([
                     'success' => false,
                     'message' => 'User not found',
                 ], 404);
             }
-    
+
             // Fetch game details
             $game_details = [];
             $formgames = FormGame::where('form_id', $form->id)
                                 ->with('account')
                                 ->get(); // Fetch as a collection
-    
+
             if ($formgames->isEmpty()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'No games found for this user',
                 ], 404);
             }
-    
+
             foreach ($formgames as $game) {
                 $game_details[] = [
                     "game" => $game->account->name ?? 'Unknown', // Prevent errors if account is null
                     'game_id' => $game->game_id,
                 ];
             }
-    
+
             // Generate JWT Token
             $token = JWTAuth::fromUser($form);
-    
+
             return response()->json([
                 'success' => true,
                 'message' => 'User details fetched successfully',
@@ -5130,7 +5130,7 @@ $old=null;
                     'token' => $token,
                 ]
             ], 200);
-            
+
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,

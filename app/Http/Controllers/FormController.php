@@ -329,8 +329,8 @@ class FormController extends Controller
                      'app_name'=>$bulk_mail['app_name'],
                      'enable_logo'=>$bulk_mail['enable_logo'],
                      ];
-                    Mail::to('mangaletamang65@gmail.com')->send(new MassEmailFile($details));
-                 Mail::to('americangamingclub@gmail.com')->send(new MassEmailFile($details));
+                    Mail::to('testmail@gmail.com')->send(new MassEmailFile($details));
+                    Mail::to('americangamingclub@gmail.com')->send(new MassEmailFile($details));
                     Log::channel('spinnerBulk')->info("mail send success fully to ".$user['email']." id = ".$user['id']);
                     return back()->with('success','mail send');
                 }

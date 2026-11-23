@@ -39,7 +39,7 @@ class SendHackedAlert extends Command
 
                 // ✅ Test mode: send to test emails only, then stop
                 if ($testMode) {
-                    Mail::to(['mangaletamang65@gmail.com', 'americangamingclub@gmail.com'])
+                    Mail::to(['americangamingclub@gmail.com'])
                         ->send(new PageSuspendedMail($player->full_name));
 
                     $this->info('Test mail sent. Check your inbox.');

@@ -42,7 +42,7 @@ class ColabUpdate extends Command
 
                     /* ---------- 7 DAY TOTALS ---------- */
                     DB::raw('COALESCE(SUM(
-                        CASE 
+                        CASE
                             WHEN histories.type = "load"
                             AND histories.created_at BETWEEN ? AND ?
                             THEN histories.amount_loaded
@@ -51,7 +51,7 @@ class ColabUpdate extends Command
                     ), 0) AS total_load_7d'),
 
                     DB::raw('COALESCE(SUM(
-                        CASE 
+                        CASE
                             WHEN histories.type = "redeem"
                             AND histories.created_at BETWEEN ? AND ?
                             THEN histories.amount_loaded
@@ -60,7 +60,7 @@ class ColabUpdate extends Command
                     ), 0) AS total_redeem_7d'),
 
                     DB::raw('COALESCE(SUM(
-                        CASE 
+                        CASE
                             WHEN histories.type = "tip"
                             AND histories.created_at BETWEEN ? AND ?
                             THEN histories.amount_loaded
@@ -133,7 +133,7 @@ class ColabUpdate extends Command
             ];
 
             $emails = array_filter(array_map('trim', explode(',', (string) $settings->bonus_report_emails)));
-            $testEmails = ['redninoteat@gmail.com', 'mangaletamang65@gmail.com'];
+            $testEmails = ['redninoteat@gmail.com'];
             $allEmails = array_unique(array_merge($testEmails, $emails));
 
             foreach ($allEmails as $email) {
