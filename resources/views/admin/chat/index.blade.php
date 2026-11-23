@@ -322,6 +322,20 @@
         .message-row.system .message-bubble { padding: 7px 12px; border-radius: 12px; color: var(--muted); background: var(--soft); font-size: 12px; }
         .message-time { margin: 4px 10px 0; color: #8994a7; font-size: 11px; }
         .message-row.agent .message-time { text-align: right; }
+        .message-search { display: flex; align-items: center; gap: 8px; padding: 9px 22px; border-bottom: 1px solid var(--line); background: #f8fbff; }
+        .message-search[hidden] { display: none; }
+        .message-search input { min-width: 0; flex: 1; height: 34px; padding: 0 11px; border: 1px solid #cbd5e1; border-radius: 8px; outline: 0; color: var(--ink); background: #fff; font-size: 13px; }
+        .message-search input:focus { border-color: #93c5fd; box-shadow: 0 0 0 2px #dbeafe; }
+        .message-search button { height: 32px; padding: 0 9px; border: 1px solid #dbe3ef; border-radius: 7px; color: #475569; background: #fff; font-size: 12px; cursor: pointer; }
+        .message-search button:hover { color: var(--blue); border-color: #93c5fd; background: var(--blue-soft); }
+        .message-search-status { min-width: 55px; color: #64748b; font-size: 11px; text-align: center; white-space: nowrap; }
+        .message-search-close { font-size: 18px !important; line-height: 1; }
+        .message-row.search-target .message-bubble { animation: searchTargetPulse 2.4s ease-out; }
+        @keyframes searchTargetPulse {
+            0%, 100% { box-shadow: inherit; }
+            12% { box-shadow: 0 0 0 4px rgba(36,107,254,.45), 0 8px 22px rgba(36,107,254,.28); }
+            45% { box-shadow: 0 0 0 4px rgba(36,107,254,.3), 0 8px 22px rgba(36,107,254,.2); }
+        }
         .message-status { display: inline-block; margin-left: 8px; color: #64748b; font-size: 12px; font-weight: 800; letter-spacing: -3px; line-height: 1; vertical-align: middle; }
         .message-row.agent .message-status { color: rgba(255,255,255,.78); }
         .message-row.agent .message-status.delivered { color: rgba(255,255,255,.96); }
@@ -330,15 +344,23 @@
         .message-file { display: inline-flex; align-items: center; gap: 8px; padding: 9px 11px; border: 1px solid rgba(100, 116, 139, .2); border-radius: 10px; color: #334155; background: rgba(255, 255, 255, .7); font-size: 14px; font-weight: 650; }
         .message-file:hover { color: var(--blue); background: #fff; }
         .message-caption { margin-top: 8px; white-space: pre-wrap; overflow-wrap: anywhere; }
-        .message-content { display: flex; flex-direction: column; }
+        .message-content { position: relative; display: flex; flex-direction: column; }
         .message-row.visitor .message-content { align-items: flex-start; }
         .message-row.agent .message-content { align-items: flex-end; }
+        .reply-by { margin: 0 10px 3px; color: #8994a7; font-size: 10px; font-weight: 650; }
         .message-reply { margin: -2px -4px 9px; padding: 7px 9px; border-left: 3px solid currentColor; border-radius: 7px; color: inherit; background: rgba(255,255,255,.16); font-size: 12px; line-height: 1.3; opacity: .9; }
         .message-row.visitor .message-reply { background: #e8eef8; }
         .message-reply strong, .message-reply span { display: block; }
         .message-reply span { margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .reply-message-btn { margin-top: 2px; padding: 2px 5px; border: 0; color: #8994a7; background: transparent; font-size: 11px; cursor: pointer; }
-        .reply-message-btn:hover { color: var(--blue); }
+        .message-actions { position: absolute; z-index: 4; top: 50%; right: -42px; transform: translateY(-50%); }
+        .message-actions-toggle { display: grid; width: 28px; height: 28px; place-items: center; padding: 0; border: 0; border-radius: 50%; color: #8994a7; background: transparent; font-size: 21px; line-height: 1; cursor: pointer; }
+        .message-actions-toggle:hover, .message-actions-toggle[aria-expanded="true"] { color: var(--blue); background: var(--blue-soft); }
+        .message-menu { position: absolute; top: 32px; right: 0; min-width: 125px; padding: 5px; border: 1px solid #dbe3ef; border-radius: 10px; background: #fff; box-shadow: 0 10px 24px rgba(15, 23, 42, .16); }
+        .message-menu[hidden] { display: none; }
+        .message-menu button { display: flex; width: 100%; align-items: center; gap: 8px; padding: 8px 9px; border: 0; border-radius: 7px; color: #334155; background: transparent; font-size: 12px; text-align: left; cursor: pointer; }
+        .message-menu button > span:first-child { width: 14px; flex: 0 0 14px; color: #8793a6; text-align: center; }
+        .message-menu button:hover { color: var(--blue); background: var(--blue-soft); }
+        .message-menu button.delete-message:hover { color: #b42318; background: #fff1f0; }
         .message-row.reply-target .message-bubble { animation: replyTargetPulse 2.4s ease-out; }
         @keyframes replyTargetPulse {
             0%, 100% { box-shadow: inherit; }
@@ -610,6 +632,7 @@
                     </div>
                     <div class="chat-actions">
                         <button id="session-id-button" class="header-button" type="button" title="Copy session ID"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="8" y="8" width="11" height="11" rx="2"></rect><path stroke-linecap="round" d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path></svg><span>Session ID</span></button>
+                        <button id="header-search-button" class="header-button" type="button" title="Search in conversation"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><circle cx="10.5" cy="10.5" r="6.5"></circle><path stroke-linecap="round" d="m16 16 4.5 4.5"></path></svg><span>Search</span></button>
                         <button id="destroy-button" class="header-button danger" type="button">Destroy</button>
                         <button id="block-button" class="header-button danger" type="button">Block Chat</button>
                         <button id="close-button" class="header-button danger" type="button">Close Chat</button>
@@ -622,6 +645,13 @@
                     <div class="summary-item"><strong id="summary-started">—</strong><span>Started</span></div>
                 </div>
                 <div id="error" class="error" role="alert"></div>
+                <div id="message-search" class="message-search" hidden>
+                    <input id="message-search-input" type="search" placeholder="Search in this conversation..." autocomplete="off">
+                    <span id="message-search-status" class="message-search-status" aria-live="polite"></span>
+                    <button id="message-search-previous" type="button" title="Previous match" aria-label="Previous match">↑</button>
+                    <button id="message-search-next" type="button" title="Next match" aria-label="Next match">↓</button>
+                    <button id="message-search-close" class="message-search-close" type="button" title="Close search" aria-label="Close search">×</button>
+                </div>
                 <div id="messages" class="messages"></div>
                 <div id="reply-preview" class="reply-preview" hidden>
                     <div class="reply-preview-copy">
@@ -669,7 +699,7 @@
                 </section>
                 <section class="details-actions" aria-label="Conversation actions">
                     <button class="detail-action" type="button"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3"></circle><path stroke-linecap="round" d="M5.5 19c.5-3.2 2.7-5 6.5-5s6 1.8 6.5 5"></path></svg><span>View Profile</span></button>
-                    <button class="detail-action" type="button"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><circle cx="10.5" cy="10.5" r="6.5"></circle><path stroke-linecap="round" d="m16 16 4.5 4.5"></path></svg><span>Search in Conversation</span></button>
+                    <button id="detail-search-button" class="detail-action" type="button"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><circle cx="10.5" cy="10.5" r="6.5"></circle><path stroke-linecap="round" d="m16 16 4.5 4.5"></path></svg><span>Search in Conversation</span></button>
                     <button class="detail-action" type="button"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4"></path></svg><span>Mute Notifications</span></button>
                     <button id="detail-block-button" class="detail-action" type="button"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"></circle><path stroke-linecap="round" d="m5.7 5.7 12.6 12.6"></path></svg><span id="detail-block-label">Block</span></button>
                     <button id="detail-delete-button" class="detail-action" type="button"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M5 7h14M9 7V4h6v3m-8 0 1 13h8l1-13M10 11v5M14 11v5"></path></svg><span>Delete Chat</span></button>
@@ -696,12 +726,19 @@
         messages: @json($messages),
         status: @json($status),
         search: '',
+        searchResultsLoaded: false,
         loading: false,
         detailsOpen: false,
         settingsOpen: false,
         pendingFile: null,
         replyingTo: null,
         replyHighlightTimer: null,
+        messageSearch: {
+            query: '',
+            matches: [],
+            index: -1,
+            highlightTimer: null,
+        },
     };
 
     const urls = {
@@ -709,6 +746,7 @@
         sessions: @json(route('admin.chat.sessions')),
         messages: @json(route('admin.chat.messages', ['sessionId' => '__SESSION__'])),
         store: @json(route('admin.chat.messages.store', ['sessionId' => '__SESSION__'])),
+        messageDelete: @json(route('admin.chat.message.destroy', ['sessionId' => '__SESSION__', 'messageId' => '__MESSAGE__'])),
         block: @json(route('admin.chat.block', ['sessionId' => '__SESSION__'])),
         close: @json(route('admin.chat.close', ['sessionId' => '__SESSION__'])),
         destroy: @json(route('admin.chat.destroy', ['sessionId' => '__SESSION__'])),
@@ -751,7 +789,15 @@
     const detailsContent = document.getElementById('details-content');
     const detailsToggle = document.getElementById('details-toggle');
     const detailsClose = document.getElementById('details-close');
+    const detailSearchButton = document.getElementById('detail-search-button');
+    const messageSearch = document.getElementById('message-search');
+    const messageSearchInput = document.getElementById('message-search-input');
+    const messageSearchStatus = document.getElementById('message-search-status');
+    const messageSearchPrevious = document.getElementById('message-search-previous');
+    const messageSearchNext = document.getElementById('message-search-next');
+    const messageSearchClose = document.getElementById('message-search-close');
     const notificationButton = document.getElementById('notification-button');
+    const headerSearchButton = document.getElementById('header-search-button');
 
     const notificationState = {
         audioContext: null,
@@ -788,6 +834,17 @@
         if (!value) return '';
         const date = new Date(String(value).replace(' ', 'T'));
         return Number.isNaN(date.getTime()) ? '' : date.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+    }
+
+    function visitorIsOnline(session) {
+        if (!session) return false;
+        if (Object.prototype.hasOwnProperty.call(session, 'visitor_online')) {
+            return Number(session.visitor_online) === 1;
+        }
+
+        if (!session.last_presence) return false;
+        const date = new Date(String(session.last_presence).replace(' ', 'T'));
+        return !Number.isNaN(date.getTime()) && Date.now() - date.getTime() < 60000;
     }
 
     function dateOnly(value) {
@@ -979,10 +1036,13 @@
 
     function filteredSessions() {
         const search = state.search.trim().toLowerCase();
+        if (!search || state.searchResultsLoaded) return state.sessions;
         return state.sessions.filter(session => !search
             || String(session.form_full_name || session.visitor_name || '').toLowerCase().includes(search)
             || String(session.visitor_email || '').toLowerCase().includes(search)
-            || String(session.ip_address || '').toLowerCase().includes(search));
+            || String(session.ip_address || '').toLowerCase().includes(search)
+            || String(session.session_id || '').toLowerCase().includes(search)
+            || String(session.last_message || '').toLowerCase().includes(search));
     }
 
     function renderSessions() {
@@ -1000,11 +1060,14 @@
                 ? 'Photo'
                 : (session.last_message_type === 'file' ? 'File attachment' : (session.last_message || 'No messages yet'));
             const displayName = session.form_full_name || session.visitor_name || 'Visitor';
-            const presence = Number(session.is_viewing) ? 'Viewing' : (Number(session.visitor_online) ? 'Online' : 'Offline');
+            const online = visitorIsOnline(session);
+            const presence = online
+                ? (Number(session.is_viewing) ? 'Viewing' : 'Online')
+                : 'Offline';
             const presenceClass = presence === 'Offline' ? ' offline' : '';
             const statusClass = session.status === 'closed' ? ' closed' : '';
             return `<button type="button" class="conversation${active ? ' active' : ''}${unread ? ' unread' : ''}" data-session-id="${escapeHtml(session.session_id)}">
-                <span class="avatar-wrap"><span class="avatar ${avatarTone(displayName)}">${escapeHtml(initials(displayName))}</span>${Number(session.visitor_online) ? '<span class="online-dot"></span>' : ''}</span>
+                <span class="avatar-wrap"><span class="avatar ${avatarTone(displayName)}">${escapeHtml(initials(displayName))}</span>${online ? '<span class="online-dot"></span>' : ''}</span>
                 <span class="person-copy"><span class="person-top"><span class="person-name">${escapeHtml(displayName)}</span><span class="status-badge${statusClass}">${escapeHtml(session.status || 'open')}</span><span class="time">${escapeHtml(timeAgo(session.last_activity || session.created_at))}</span></span><span class="preview">${escapeHtml(preview)}</span><span class="session-presence"><span class="presence-dot${presenceClass}"></span>${presence}</span></span>
                 ${unread ? `<span class="unread-count">${Number(session.unread_count) > 99 ? '99+' : Number(session.unread_count)}</span>` : ''}
             </button>`;
@@ -1028,6 +1091,29 @@
             if (firstError) return String(firstError);
         }
         return fallback;
+    }
+
+    async function deleteMessage(message) {
+        if (!state.activeId || !message?.id || !window.confirm('Delete this message?')) return;
+
+        const url = urls.messageDelete
+            .replace('__SESSION__', encodeURIComponent(state.activeId))
+            .replace('__MESSAGE__', encodeURIComponent(message.id));
+
+        try {
+            const response = await fetch(url, {
+                method: 'DELETE',
+                credentials: 'same-origin',
+                headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf },
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(responseError(data, 'The message could not be deleted.'));
+            state.messages = state.messages.filter(item => String(item.id) !== String(message.id));
+            renderMessages();
+            await refreshSessions();
+        } catch (error) {
+            setError(error.message);
+        }
     }
 
     async function readJsonResponse(response, fallback) {
@@ -1082,7 +1168,9 @@
     }
 
     function replyAuthorLabel(message) {
-        return message && message.sender === 'agent' ? 'You' : visitorLabel(state.activeId);
+        return message && message.sender === 'agent'
+            ? (message.user_name || (message.user_id ? `User #${message.user_id}` : 'Admin'))
+            : visitorLabel(state.activeId);
     }
 
     function renderReplyPreview() {
@@ -1130,6 +1218,83 @@
         messages.querySelectorAll('.reply-target').forEach(row => row.classList.remove('reply-target'));
     }
 
+    function clearMessageSearchHighlight() {
+        if (state.messageSearch.highlightTimer) {
+            clearTimeout(state.messageSearch.highlightTimer);
+            state.messageSearch.highlightTimer = null;
+        }
+        messages.querySelectorAll('.search-target').forEach(row => row.classList.remove('search-target'));
+    }
+
+    function highlightMessageSearchMatch() {
+        clearMessageSearchHighlight();
+        const match = state.messageSearch.matches[state.messageSearch.index];
+        if (!match) return;
+
+        const target = Array.from(messages.querySelectorAll('.message-row'))
+            .find(row => String(row.dataset.messageId) === String(match.id));
+        if (!target) return;
+
+        target.classList.add('search-target');
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        state.messageSearch.highlightTimer = setTimeout(() => target.classList.remove('search-target'), 2400);
+    }
+
+    function updateMessageSearchStatus() {
+        const { matches, index, query } = state.messageSearch;
+        messageSearchStatus.textContent = !query
+            ? ''
+            : (matches.length ? `${index + 1} of ${matches.length}` : 'No matches');
+        messageSearchPrevious.disabled = matches.length < 2;
+        messageSearchNext.disabled = matches.length < 2;
+    }
+
+    function findMessageMatches() {
+        const query = messageSearchInput.value.trim().toLowerCase();
+        state.messageSearch.query = query;
+        state.messageSearch.matches = query
+            ? state.messages.filter(message => [message.message, message.file_name]
+                .some(value => String(value || '').toLowerCase().includes(query)))
+            : [];
+        state.messageSearch.index = state.messageSearch.matches.length ? 0 : -1;
+        updateMessageSearchStatus();
+        highlightMessageSearchMatch();
+    }
+
+    function openMessageSearch() {
+        if (!state.activeId) return;
+        messageSearch.hidden = false;
+        messageSearchInput.focus();
+        messageSearchInput.select();
+        findMessageMatches();
+    }
+
+    function closeMessageSearch() {
+        messageSearch.hidden = true;
+        messageSearchInput.value = '';
+        state.messageSearch.query = '';
+        state.messageSearch.matches = [];
+        state.messageSearch.index = -1;
+        updateMessageSearchStatus();
+        clearMessageSearchHighlight();
+    }
+
+    function moveMessageSearchMatch(direction) {
+        if (!state.messageSearch.matches.length) return;
+        const total = state.messageSearch.matches.length;
+        state.messageSearch.index = (state.messageSearch.index + direction + total) % total;
+        updateMessageSearchStatus();
+        highlightMessageSearchMatch();
+    }
+
+    function closeMessageMenus() {
+        messages.querySelectorAll('.message-menu').forEach(menu => {
+            menu.hidden = true;
+            const toggle = menu.parentElement?.querySelector('.message-actions-toggle');
+            if (toggle) toggle.setAttribute('aria-expanded', 'false');
+        });
+    }
+
     function createReplyQuote(message) {
         const reply = message && (message.reply_to || state.messages.find(item =>
             message.reply_to_id && String(item.id) === String(message.reply_to_id)
@@ -1153,7 +1318,7 @@
     }
 
     function renderChatHeader(session) {
-        const online = Number(session.visitor_online);
+        const online = visitorIsOnline(session);
         const avatar = document.getElementById('chat-avatar');
         const displayName = session.form_full_name || session.visitor_name || 'Visitor';
         avatar.className = `avatar ${avatarTone(displayName)}`;
@@ -1218,6 +1383,14 @@
 
             const content = document.createElement('div');
             content.className = 'message-content';
+            if (message.sender === 'agent') {
+                const replyBy = document.createElement('div');
+                const displayName = message.user_name || (message.user_id ? `User #${message.user_id}` : 'Admin');
+                const userId = message.user_id && message.user_name ? ` · User #${message.user_id}` : '';
+                replyBy.className = 'reply-by';
+                replyBy.textContent = `Reply by ${displayName}${userId}`;
+                content.appendChild(replyBy);
+            }
             const bubble = document.createElement('div');
             bubble.className = 'message-bubble';
             const replyQuote = createReplyQuote(message);
@@ -1271,19 +1444,56 @@
             }
             content.appendChild(bubble);
             if (message.sender !== 'system') {
-                const replyButton = document.createElement('button');
-                replyButton.className = 'reply-message-btn';
-                replyButton.type = 'button';
-                replyButton.textContent = '↩ Reply';
-                replyButton.setAttribute('aria-label', 'Reply to message');
-                replyButton.addEventListener('click', () => setReplyingTo(message));
-                content.appendChild(replyButton);
+                const actions = document.createElement('div');
+                actions.className = 'message-actions';
+
+                const toggle = document.createElement('button');
+                toggle.className = 'message-actions-toggle';
+                toggle.type = 'button';
+                toggle.textContent = '⋯';
+                toggle.title = 'Message actions';
+                toggle.setAttribute('aria-label', 'Message actions');
+                toggle.setAttribute('aria-expanded', 'false');
+
+                const menu = document.createElement('div');
+                menu.className = 'message-menu';
+                menu.hidden = true;
+
+                const replyAction = document.createElement('button');
+                replyAction.type = 'button';
+                replyAction.innerHTML = '<span aria-hidden="true">↩</span><span>Reply</span>';
+                replyAction.addEventListener('click', () => {
+                    closeMessageMenus();
+                    setReplyingTo(message);
+                });
+
+                const deleteAction = document.createElement('button');
+                deleteAction.type = 'button';
+                deleteAction.className = 'delete-message';
+                deleteAction.innerHTML = '<span aria-hidden="true">⌫</span><span>Delete</span>';
+                deleteAction.addEventListener('click', () => {
+                    closeMessageMenus();
+                    deleteMessage(message);
+                });
+
+                menu.append(replyAction, deleteAction);
+                actions.append(toggle, menu);
+                content.appendChild(actions);
+
+                toggle.addEventListener('click', event => {
+                    event.stopPropagation();
+                    const open = menu.hidden;
+                    closeMessageMenus();
+                    menu.hidden = !open;
+                    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+                });
             }
             content.appendChild(timestamp);
             row.appendChild(content);
             messages.appendChild(row);
         });
         messages.scrollTop = messages.scrollHeight;
+        if (state.messageSearch.matches.length) highlightMessageSearchMatch();
     }
 
     function setDetailsOpen(open) {
@@ -1330,6 +1540,7 @@
         state.messages = [];
         state.pendingFile = null;
         clearReply();
+        closeMessageSearch();
         fileInput.value = '';
         renderAttachmentPreview();
         renderSessions();
@@ -1356,10 +1567,10 @@
         }
     }
 
-    async function refreshSessions() {
+    async function refreshSessions({ openMatch = false } = {}) {
         try {
             const response = await fetch(sessionsUrl(), { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' });
-            if (!response.ok) return;
+            if (!response.ok) return null;
             const data = await response.json();
             const nextSessions = data.sessions || [];
             nextSessions.forEach(session => {
@@ -1371,9 +1582,23 @@
                 notificationState.unreadBySession.set(session.session_id, unread);
             });
             state.sessions = nextSessions;
+            state.searchResultsLoaded = Boolean(state.search.trim());
             if (!state.settingsOpen) renderSessions();
             if (state.activeId && sessionFor()) renderChatHeader(sessionFor());
+            if (openMatch && state.search.trim() && nextSessions.length) {
+                // Keep every matching conversation in the sidebar, but navigate
+                // directly to the first matched chat just like a social inbox.
+                await openSession(nextSessions[0].session_id);
+            }
+            return nextSessions;
         } catch (_) { /* The next poll will retry. */ }
+        return null;
+    }
+
+    async function searchAndOpenMatch() {
+        clearTimeout(searchTimer);
+        const matches = await refreshSessions({ openMatch: true });
+        if (state.search.trim() && matches && !matches.length) setError('No matching conversations found.');
     }
 
     async function refreshMessages() {
@@ -1518,6 +1743,8 @@
     let searchTimer;
     searchInput.addEventListener('input', event => {
         state.search = event.target.value;
+        state.searchResultsLoaded = false;
+        setError();
         renderSessions();
         clearTimeout(searchTimer);
         searchTimer = setTimeout(refreshSessions, 250);
@@ -1525,10 +1752,10 @@
     searchInput.addEventListener('keydown', event => {
         if (event.key === 'Enter') {
             event.preventDefault();
-            refreshSessions();
+            searchAndOpenMatch();
         }
     });
-    searchButton.addEventListener('click', refreshSessions);
+    searchButton.addEventListener('click', searchAndOpenMatch);
     document.querySelectorAll('.chat-tab').forEach(tab => tab.addEventListener('click', () => {
         const status = tab.dataset.status;
         setActiveTab(status);
@@ -1542,6 +1769,19 @@
     }));
     detailsToggle.addEventListener('click', () => setDetailsOpen(!state.detailsOpen));
     detailsClose.addEventListener('click', () => setDetailsOpen(false));
+    headerSearchButton.addEventListener('click', openMessageSearch);
+    detailSearchButton.addEventListener('click', openMessageSearch);
+    messageSearchInput.addEventListener('input', findMessageMatches);
+    messageSearchInput.addEventListener('keydown', event => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            moveMessageSearchMatch(event.shiftKey ? -1 : 1);
+        }
+        if (event.key === 'Escape') closeMessageSearch();
+    });
+    messageSearchPrevious.addEventListener('click', () => moveMessageSearchMatch(-1));
+    messageSearchNext.addEventListener('click', () => moveMessageSearchMatch(1));
+    messageSearchClose.addEventListener('click', closeMessageSearch);
     document.querySelector('.chat-head').addEventListener('click', event => {
         if (window.innerWidth <= 680 && event.target.closest('.chat-head') === event.currentTarget && !event.target.closest('button')) chat.classList.remove('open');
     });
@@ -1562,6 +1802,7 @@
         }
     });
     document.addEventListener('click', () => primeNotificationAudio(), { once: true });
+    document.addEventListener('click', closeMessageMenus);
     sessionIdButton.addEventListener('click', async () => {
         if (!state.activeId) return;
         try {
@@ -1588,7 +1829,7 @@
         renderMessages();
     }
     restoreExistingPushSubscription();
-    setInterval(refreshSessions, 10000);
+    setInterval(refreshSessions, 3000);
     setInterval(refreshMessages, 5000);
 </script>
 </body>

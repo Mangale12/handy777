@@ -17,6 +17,7 @@
         .hero { padding:34px 34px 28px; color:#fff; background:linear-gradient(135deg,rgba(23,31,61,.94),rgba(45,44,113,.94) 58%,rgba(111,54,166,.92)),var(--background-image); background-position:center center; background-size:cover; text-align:center; }
         .home-link { display:inline-flex; align-items:center; gap:6px; margin-bottom:18px; padding:7px 12px; border:1px solid rgba(255,255,255,.4); border-radius:999px; color:#fff; background:rgba(255,255,255,.12); font-size:12px; font-weight:750; text-decoration:none; }
         .home-link:hover { background:rgba(255,255,255,.2); }
+        .home-email { margin:-10px auto 20px; max-width:100%; overflow:hidden; color:rgba(255,255,255,.78); font-size:11px; text-overflow:ellipsis; white-space:nowrap; }
         .brand { display:grid; width:58px; height:58px; margin:0 auto 28px; padding:4px; place-items:center; border:1px solid rgba(255,255,255,.45); border-radius:18px; background:rgba(255,255,255,.16); box-shadow:inset 0 1px rgba(255,255,255,.3),0 8px 22px rgba(36,107,254,.2); overflow:hidden; }
         .brand img { width:100%; height:100%; border-radius:13px; object-fit:cover; }
         h1 { margin:0 0 10px; font-size:30px; letter-spacing:-.04em; }
@@ -46,6 +47,9 @@
     <main class="shell" style="--background-image: url('{{ asset('images/abgaming.jpeg') }}');">
         <section class="hero">
             <a class="home-link" href="{{ route('homePage') }}" aria-label="Back to home">← Home</a>
+            @if (!empty($email))
+                <div class="home-email" title="{{ $email }}">Your email: {{ $email }}</div>
+            @endif
             <div class="brand" aria-hidden="true"><img src="{{ asset('images/abgaming.jpeg') }}" alt="AB Gaming"></div>
             <h1>Welcome to support</h1>
             <p>Start a private conversation with the AB Gaming support team.</p>
@@ -58,7 +62,7 @@
                 <p class="hint">Your support chat will use the details saved in your registration form.</p>
                 <div class="user-card">
                     <span class="user-avatar">{{ strtoupper(substr($user->full_name ?: 'U', 0, 1)) }}</span>
-                    <span><strong>{{ $user->full_name }}</strong><small>{{ $user->email }}</small></span>
+                    <span><strong>{{ $user->full_name }}</strong></span>
                     <span class="user-meta">
                         @if ($user->number)<span>{{ $user->number }}</span>@endif
                         @if ($user->game_id)<span>Game ID: {{ $user->game_id }}</span>@endif
@@ -67,17 +71,17 @@
             @else
                 <p class="eyebrow">Secure account lookup</p>
                 <h2>Find your account</h2>
-                <p class="hint">Enter the email used on your form so the support team can see the correct account details.</p>
+                <p class="hint">Enter your chat code so the support team can connect the correct account.</p>
             @endif
 
             <form method="POST" action="{{ route('chat.submit') }}">
                 @csrf
                 @unless ($user)
-                    <label for="email">Email address</label>
-                    <input id="email" type="email" name="email" value="{{ old('email', $email ?? '') }}" placeholder="you@example.com" autocomplete="email" required autofocus>
-                    @error('email')<div class="error">{{ $message }}</div>@enderror
+                    <label for="chat_code">Chat code</label>
+                    <input id="chat_code" type="text" name="chat_code" value="{{ old('chat_code', session('chat_code', '')) }}" placeholder="Enter your chat code" autocomplete="one-time-code" autocapitalize="characters" required autofocus>
+                    @error('chat_code')<div class="error">{{ $message }}</div>@enderror
                 @else
-                    <input type="hidden" name="email" value="{{ $user->email }}">
+                    <input type="hidden" name="chat_code" value="{{ $chat_code ?? '' }}">
                 @endunless
                 <button type="submit">Open support chat</button>
             </form>

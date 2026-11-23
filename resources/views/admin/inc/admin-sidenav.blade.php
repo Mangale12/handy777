@@ -29,6 +29,13 @@
                 </a>
             </li>
             <li class="px-3 py-2 mx-3 my-2">
+                <a href="{{ route('admin.chat-emails.index') }}">
+                    <div class="d-flex"> <span class="mr-4"><i
+                                class="fa fa-envelope"></i></span>Chat Emails
+                    </div>
+                </a>
+            </li>
+            <li class="px-3 py-2 mx-3 my-2">
                 <a href="{{ route('table') }}">
                     <div class="d-flex"> <span class="mr-4"><i class="fa fa-user"
                                 aria-hidden="true"></i></span>Account

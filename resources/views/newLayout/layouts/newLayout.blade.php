@@ -964,6 +964,17 @@ body {
                                     <span class="nav-link-text ms-1">Tables</span>
                                 </a>
                             </li>
+                            @if (Auth::user()->role == 'admin')
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('admin.chat-emails.*') ? 'active' : '' }}"
+                                    href="{{ route('admin.chat-emails.index') }}">
+                                    <div class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
+                                        <i class="fa fa-comments text-warning text-sm opacity-10" aria-hidden="true"></i>
+                                    </div>
+                                    <span class="nav-link-text ms-1">Chat Emails</span>
+                                </a>
+                            </li>
+                            @endif
 
                             <li  data-toggle="collapse" data-target="#products" class="collapsed  nav-item">
                               <a href="#" class="nav-link {{Route::is('todays-history','monthlyHistory','all-history','redeemHistory') ? 'active' : ' '}}" >

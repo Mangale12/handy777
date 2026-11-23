@@ -139,7 +139,9 @@
 
         .user-details-toggle:hover,
         .user-details-toggle[aria-expanded="true"],
-        .voice-call-toggle:hover {
+        .voice-call-toggle:hover,
+        .conversation-search-toggle:hover,
+        .conversation-search-toggle[aria-expanded="true"] {
             background: rgba(255,255,255,.24);
         }
 
@@ -164,8 +166,24 @@
             opacity: .62;
         }
 
+        .conversation-search-toggle {
+            display: inline-flex;
+            width: 30px;
+            height: 30px;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            border: 1px solid rgba(255,255,255,.4);
+            border-radius: 50%;
+            color: #fff;
+            background: rgba(4, 17, 66, .2);
+            cursor: pointer;
+            backdrop-filter: blur(8px);
+        }
+
         .user-details-toggle:focus-visible,
         .voice-call-toggle:focus-visible,
+        .conversation-search-toggle:focus-visible,
         .user-details-close:focus-visible,
         .chat-logout-btn:focus-visible,
         .chat-home-link:focus-visible {
@@ -265,12 +283,16 @@
             white-space: nowrap;
         }
 
-        .visitor-email {
-            max-width: 82vw;
-            margin-top: 2px;
+        .chat-home-email {
+            position: absolute;
+            top: calc(var(--safe-top) + 48px);
+            left: 12px;
+            z-index: 2;
+            max-width: min(220px, calc(100vw - 24px));
             overflow: hidden;
-            color: rgba(255,255,255,.88);
-            font-size: 11px;
+            color: rgba(255,255,255,.82);
+            font-size: 10px;
+            font-weight: 650;
             text-overflow: ellipsis;
             white-space: nowrap;
         }
@@ -465,6 +487,59 @@
 
         .chat-wrapper > main { position: relative; z-index: 1; }
         .chat-wrapper > footer { z-index: 11; }
+
+        .conversation-search-panel {
+            position: relative;
+            z-index: 12;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--ios-border);
+            background: rgba(255,255,255,.94);
+        }
+
+        .conversation-search-panel[hidden] { display: none; }
+
+        [data-theme="dark"] .conversation-search-panel { background: rgba(15, 22, 48, .96); }
+        .conversation-search-panel input {
+            min-width: 0;
+            flex: 1;
+            height: 34px;
+            padding: 0 10px;
+            border: 1px solid var(--ios-border);
+            border-radius: 9px;
+            outline: 0;
+            color: var(--ios-text);
+            background: var(--ios-gray);
+            font: inherit;
+            font-size: 13px;
+        }
+        .conversation-search-panel input:focus { border-color: var(--ios-blue); box-shadow: 0 0 0 3px rgba(36,107,254,.14); }
+        .conversation-search-panel button {
+            display: inline-flex;
+            height: 32px;
+            align-items: center;
+            justify-content: center;
+            padding: 0 8px;
+            border: 1px solid var(--ios-border);
+            border-radius: 8px;
+            color: var(--ios-gray-text);
+            background: var(--ios-gray);
+            font: inherit;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .conversation-search-panel button:hover { color: var(--ios-blue); background: var(--ios-surface); }
+        .conversation-search-panel button:disabled { cursor: not-allowed; opacity: .45; }
+        .conversation-search-status { min-width: 52px; color: var(--ios-gray-text); font-size: 11px; text-align: center; white-space: nowrap; }
+        .conversation-search-close { font-size: 19px !important; line-height: 1; }
+        .msg-row.search-target .bubble { animation: conversationSearchPulse 2.4s ease-out; }
+        @keyframes conversationSearchPulse {
+            0%, 100% { box-shadow: inherit; }
+            12% { box-shadow: 0 0 0 4px rgba(36,107,254,.45), 0 6px 18px rgba(36,107,254,.28); }
+            45% { box-shadow: 0 0 0 4px rgba(240,68,157,.3), 0 6px 18px rgba(36,107,254,.2); }
+        }
 
         main {
             flex: 1 1 0;
@@ -701,6 +776,7 @@
             display: flex;
             flex-direction: column;
             max-width: 75%;
+            position: relative;
         }
 
         .msg-row.visitor .message-stack { align-items: flex-end; }
@@ -723,17 +799,74 @@
         .message-reply strong, .message-reply span { display: block; }
         .message-reply span { margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+        .message-actions {
+            position: absolute;
+            top: 50%;
+            right: -32px;
+            z-index: 4;
+            transform: translateY(-50%);
+        }
+
+        .msg-row.visitor .message-actions {
+            right: auto;
+            left: -36px;
+        }
+
         .reply-message-btn {
-            margin-top: 2px;
-            padding: 2px 5px;
+            display: grid;
+            width: 26px;
+            height: 26px;
+            margin: 0;
+            padding: 0;
+            place-items: center;
             border: 0;
+            border-radius: 50%;
             color: var(--ios-gray-text);
             background: transparent;
-            font-size: 11px;
+            font-size: 21px;
+            font-weight: 800;
+            line-height: 1;
+            letter-spacing: 1px;
             cursor: pointer;
         }
 
-        .reply-message-btn:hover { color: var(--ios-blue); }
+        .reply-message-btn:hover { color: var(--ios-blue); background: var(--ios-surface); }
+        .reply-message-btn svg { width: 17px; height: 17px; display: block; }
+        .message-menu {
+            position: absolute;
+            top: calc(100% + 4px);
+            right: 0;
+            z-index: 5;
+            min-width: 125px;
+            padding: 5px;
+            border: 1px solid var(--ios-border);
+            border-radius: 10px;
+            background: var(--ios-gray);
+            box-shadow: 0 10px 24px rgba(15, 23, 42, .18);
+        }
+        .message-menu[hidden] { display: none; }
+        .message-menu button {
+            display: flex;
+            width: 100%;
+            height: 32px;
+            align-items: center;
+            gap: 8px;
+            margin: 0;
+            padding: 0 8px;
+            border: 0;
+            border-radius: 7px;
+            color: var(--ios-text);
+            background: transparent;
+            box-shadow: none;
+            font-size: 12px;
+            font-weight: 500;
+            text-align: left;
+            white-space: nowrap;
+        }
+        .msg-row.visitor .message-menu { right: auto; left: 0; }
+        .message-menu button:hover { color: var(--ios-blue); background: var(--ios-surface); filter: none; }
+        .message-menu button.delete-message:hover { color: #b42318; background: #fff1f0; }
+        [data-theme="dark"] .message-menu button.delete-message:hover { background: rgba(180, 35, 24, .18); }
 
         .msg-row.reply-target .bubble {
             animation: replyTargetPulse 2.4s ease-out;
@@ -1057,7 +1190,7 @@
 </head>
 <body>
     <div class="chat-wrapper" style="--background-image: url('{{ asset('images/abgaming.jpeg') }}');">
-        <!-- Connection state; the email was already submitted on /chat. -->
+        <!-- Connection state; the chat code was already submitted on /chat. -->
         <div id="prechat-screen">
             <div class="welcome-icon">
                 <img src="{{ asset('images/abgaming.jpeg') }}" alt="AB Gaming">
@@ -1065,11 +1198,14 @@
             <h1 class="welcome-title">{{ $chatSupportName }}</h1>
             <p class="welcome-desc">Connecting your support chat…</p>
             <div id="chat-start-error" role="alert" style="display:none;color:#ff3b30;font-size:14px;margin-top:10px;text-align:center;"></div>
-            <a id="chat-back-link" href="{{ route('chat') }}" style="display:none;margin-top:16px;color:#007aff;font-size:14px;text-decoration:none;">Return to email form</a>
+            <a id="chat-back-link" href="{{ route('chat') }}" style="display:none;margin-top:16px;color:#007aff;font-size:14px;text-decoration:none;">Return to chat code form</a>
         </div>
 
         <header>
             <a class="chat-home-link" href="{{ route('homePage') }}" aria-label="Back to home">← Home</a>
+            @if (!empty($email))
+                <div class="chat-home-email" title="{{ $email }}">Your email: {{ $email }}</div>
+            @endif
             <div class="chat-header-actions">
                 @if ($chatSupportPhoneHref)
                     <a id="voice-call-button" class="voice-call-toggle" href="tel:{{ $chatSupportPhoneHref }}" aria-label="Call AB Gaming Support" title="Call AB Gaming Support">
@@ -1084,6 +1220,12 @@
                 @else
                     </button>
                 @endif
+                <button id="conversation-search-toggle" class="conversation-search-toggle" type="button" aria-label="Search in conversation" aria-controls="conversation-search-panel" aria-expanded="false" title="Search in conversation">
+                    <svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <circle cx="10.5" cy="10.5" r="6.5"></circle>
+                        <path stroke-linecap="round" d="m16 16 4.5 4.5"></path>
+                    </svg>
+                </button>
                 <button id="user-details-toggle" class="user-details-toggle" type="button" aria-label="Show your account details" aria-controls="user-details-panel" aria-expanded="false" title="Show account details">
                     <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="9"></circle>
@@ -1101,15 +1243,20 @@
                 </div>
                 <div class="agent-name" id="agent-display-name">{{ $chatSupportName }}</div>
                 <div class="agent-handle">Support conversation</div>
-                @if ($user && $user->email)
-                    <div class="visitor-email">Your email: {{ $user->email }}</div>
-                @endif
                 <div class="agent-status">
                     <span class="status-dot"></span>
                     Online
                 </div>
             </div>
         </header>
+
+        <div id="conversation-search-panel" class="conversation-search-panel" hidden>
+            <input id="conversation-search-input" type="search" placeholder="Search in conversation..." autocomplete="off">
+            <span id="conversation-search-status" class="conversation-search-status" aria-live="polite"></span>
+            <button id="conversation-search-previous" type="button" title="Previous match" aria-label="Previous match">↑</button>
+            <button id="conversation-search-next" type="button" title="Next match" aria-label="Next match">↓</button>
+            <button id="conversation-search-close" class="conversation-search-close" type="button" title="Close search" aria-label="Close search">×</button>
+        </div>
 
         <div id="user-details-layer" class="user-details-layer" aria-hidden="true">
             <div id="user-details-backdrop" class="user-details-backdrop"></div>
@@ -1204,15 +1351,20 @@
         // All chat requests use the Laravel controller endpoint.
         const API = @json(route('api.chat'));
         const submittedEmail = @json($email ?? '');
+        const submittedChatCode = @json($chat_code ?? session('chat_code', ''));
         const submittedName = @json($user->full_name ?? '');
         let sessionId = localStorage.getItem('wc_session_id') || null;
         let visitorEmail = submittedEmail || localStorage.getItem('wc_visitor_email') || null;
+        let visitorChatCode = submittedChatCode || localStorage.getItem('wc_chat_code') || null;
         let visitorName = submittedName || localStorage.getItem('wc_visitor_name') || null;
         let lastMsgId = 0;
         let isPolling = false;
         let uploadFile = null;
         let replyingTo = null;
         let replyHighlightTimer = null;
+        let loadedMessages = [];
+        let conversationSearchHighlightTimer = null;
+        let presenceMarkedOffline = false;
         let unreadWhileScrolled = 0;
         let pollIntervalId = null;
         let heartbeatIntervalId = null;
@@ -1242,6 +1394,13 @@
         const userDetailsClose = document.getElementById('user-details-close');
         const userDetailsBackdrop = document.getElementById('user-details-backdrop');
         const voiceCallButton = document.getElementById('voice-call-button');
+        const conversationSearchToggle = document.getElementById('conversation-search-toggle');
+        const conversationSearchPanel = document.getElementById('conversation-search-panel');
+        const conversationSearchInput = document.getElementById('conversation-search-input');
+        const conversationSearchStatus = document.getElementById('conversation-search-status');
+        const conversationSearchPrevious = document.getElementById('conversation-search-previous');
+        const conversationSearchNext = document.getElementById('conversation-search-next');
+        const conversationSearchClose = document.getElementById('conversation-search-close');
         let chatErrorTimer = null;
 
         function setUserDetailsOpen(open) {
@@ -1259,24 +1418,24 @@
         // ── Initialization ──
         function init() {
             // Fingerprint for session consistency. It must exist before the
-            // automatic start request made after the /chat email form submits.
+            // automatic start request made after the /chat code form submits.
             if (!localStorage.getItem('wc_fp')) {
                 const fp = Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
                 localStorage.setItem('wc_fp', fp);
             }
 
-            // The email form at /chat has already been submitted. Start the
-            // Laravel chat session with that email and skip the second welcome form.
-            if (submittedEmail) {
+            // The chat-code form at /chat has already been submitted. Start the
+            // Laravel chat session with that code and skip the second welcome form.
+            if (submittedChatCode) {
                 sessionId = null;
-                visitorEmail = submittedEmail.trim().toLowerCase();
+                visitorChatCode = submittedChatCode.trim().toUpperCase();
                 visitorName = submittedName || visitorName || visitorEmail;
-                startChat(visitorEmail);
+                startChat(visitorChatCode);
             } else if (sessionId) {
                 prechatScreen.style.display = 'none';
                 startPolling();
             } else {
-                showChatStartError('No email was submitted for this chat.');
+                showChatStartError('No chat code was submitted for this chat.');
             }
         }
 
@@ -1345,31 +1504,33 @@
         }
 
         // ── Actions ──
-        async function startChat(emailOverride = '') {
-            const providedEmail = typeof emailOverride === 'string' ? emailOverride : '';
-            const email = (providedEmail || submittedEmail || visitorEmail || '').trim().toLowerCase();
+        async function startChat(codeOverride = '') {
+            const providedCode = typeof codeOverride === 'string' ? codeOverride : '';
+            const chatCode = (providedCode || submittedChatCode || visitorChatCode || '').trim().toUpperCase();
             chatStartError.textContent = '';
             chatStartError.style.display = 'none';
             chatBackLink.style.display = 'none';
-            if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-                showChatStartError('Please return to the email form and enter a valid email address.');
+            if (!chatCode) {
+                showChatStartError('Please return to the chat-code form and enter a valid code.');
                 return;
             }
 
             const fp = localStorage.getItem('wc_fp');
-            const name = (visitorName || email).trim();
+            const name = (visitorName || '').trim();
             const res = await apiFetch('start_session', {
                 name,
-                email,
+                chat_code: chatCode,
                 fp,
             });
 
             if (res.session_id) {
                 sessionId = res.session_id;
-                visitorEmail = email;
-                visitorName = name;
+                visitorChatCode = chatCode;
+                visitorEmail = (res.user && res.user.email) || visitorEmail;
+                visitorName = (res.user && res.user.full_name) || name || visitorEmail;
                 localStorage.setItem('wc_session_id', sessionId);
-                localStorage.setItem('wc_visitor_email', visitorEmail);
+                localStorage.setItem('wc_chat_code', visitorChatCode);
+                if (visitorEmail) localStorage.setItem('wc_visitor_email', visitorEmail);
                 // Keep the legacy key for the existing widget/admin code.
                 localStorage.setItem('wc_visitor_name', visitorName);
                 
@@ -1423,6 +1584,30 @@
             }
         }
 
+        function closeVisitorMessageMenus() {
+            messagesContainer.querySelectorAll('.message-menu').forEach(menu => {
+                menu.hidden = true;
+                const toggle = menu.parentElement?.querySelector('.reply-message-btn');
+                if (toggle) toggle.setAttribute('aria-expanded', 'false');
+            });
+        }
+
+        async function deleteVisitorMessage(message, row) {
+            if (!message || message.sender !== 'visitor' || !window.confirm('Delete this message?')) return;
+
+            const res = await apiFetch('delete_message', { message_id: message.id });
+            if (!res.success) {
+                showChatError(getResponseError(res, 'The message could not be deleted.'));
+                return;
+            }
+
+            loadedMessages = loadedMessages.filter(item => String(item.id) !== String(message.id));
+            row.remove();
+            applyGroupingStyles();
+            injectTimeLabels();
+            if (!conversationSearchPanel.hidden) findConversationMatches(true);
+        }
+
         function getResponseError(res, fallback) {
             if (!res) return fallback;
             if (typeof res.error === 'string' && res.error.trim()) return res.error;
@@ -1449,6 +1634,7 @@
         function resetToWelcomeScreen() {
             sessionId = null;
             lastMsgId = 0;
+            loadedMessages = [];
             isPolling = false;
             unreadWhileScrolled = 0;
 
@@ -1465,6 +1651,7 @@
 
             clearPreview();
             clearReply();
+            closeConversationSearch();
             messagesContainer.innerHTML = '';
             messageInput.value = '';
             messageInput.style.height = 'auto';
@@ -1493,7 +1680,8 @@
         }
 
         function replyAuthorLabel(message) {
-            return message && message.sender === 'visitor' ? 'You' : @json($chatSupportName);
+            if (message && message.sender === 'visitor') return 'You';
+            return (message && message.user_name) || (message && message.user_id ? `User #${message.user_id}` : 'Admin');
         }
 
         function messageReplyMarkup(message) {
@@ -1537,6 +1725,83 @@
                 replyHighlightTimer = null;
             }
             messagesContainer.querySelectorAll('.reply-target').forEach(row => row.classList.remove('reply-target'));
+        }
+
+        function clearConversationSearchHighlight() {
+            if (conversationSearchHighlightTimer) {
+                clearTimeout(conversationSearchHighlightTimer);
+                conversationSearchHighlightTimer = null;
+            }
+            messagesContainer.querySelectorAll('.search-target').forEach(row => row.classList.remove('search-target'));
+        }
+
+        function highlightConversationSearchMatch() {
+            clearConversationSearchHighlight();
+            const match = conversationSearchMatches[conversationSearchIndex];
+            if (!match) return;
+
+            const target = Array.from(messagesContainer.querySelectorAll('.msg-row'))
+                .find(row => String(row.dataset.messageId) === String(match.id));
+            if (!target) return;
+
+            target.classList.add('search-target');
+            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            conversationSearchHighlightTimer = setTimeout(() => target.classList.remove('search-target'), 2400);
+        }
+
+        let conversationSearchMatches = [];
+        let conversationSearchIndex = -1;
+
+        function updateConversationSearchStatus() {
+            const query = conversationSearchInput.value.trim();
+            conversationSearchStatus.textContent = !query
+                ? ''
+                : (conversationSearchMatches.length ? `${conversationSearchIndex + 1} of ${conversationSearchMatches.length}` : 'No matches');
+            conversationSearchPrevious.disabled = conversationSearchMatches.length < 2;
+            conversationSearchNext.disabled = conversationSearchMatches.length < 2;
+        }
+
+        function findConversationMatches(preserveCurrent = false) {
+            const query = conversationSearchInput.value.trim().toLowerCase();
+            const currentId = preserveCurrent && conversationSearchMatches[conversationSearchIndex]
+                ? String(conversationSearchMatches[conversationSearchIndex].id)
+                : null;
+            conversationSearchMatches = query
+                ? loadedMessages.filter(message => [message.message, message.file_name]
+                    .some(value => String(value || '').toLowerCase().includes(query)))
+                : [];
+            conversationSearchIndex = conversationSearchMatches.length
+                ? Math.max(0, currentId ? conversationSearchMatches.findIndex(message => String(message.id) === currentId) : 0)
+                : -1;
+            updateConversationSearchStatus();
+            highlightConversationSearchMatch();
+        }
+
+        function openConversationSearch() {
+            if (!sessionId) return;
+            conversationSearchPanel.hidden = false;
+            conversationSearchToggle.setAttribute('aria-expanded', 'true');
+            conversationSearchInput.focus();
+            conversationSearchInput.select();
+            findConversationMatches();
+        }
+
+        function closeConversationSearch() {
+            conversationSearchPanel.hidden = true;
+            conversationSearchToggle.setAttribute('aria-expanded', 'false');
+            conversationSearchInput.value = '';
+            conversationSearchMatches = [];
+            conversationSearchIndex = -1;
+            updateConversationSearchStatus();
+            clearConversationSearchHighlight();
+        }
+
+        function moveConversationSearchMatch(direction) {
+            if (!conversationSearchMatches.length) return;
+            const total = conversationSearchMatches.length;
+            conversationSearchIndex = (conversationSearchIndex + direction + total) % total;
+            updateConversationSearchStatus();
+            highlightConversationSearchMatch();
         }
 
         // ── Polling & UI ──
@@ -1594,14 +1859,45 @@
 
         async function sendHeartbeat() {
             if (!sessionId) return;
-            const res = await apiFetch('heartbeat', { is_viewing: 1 });
+            presenceMarkedOffline = false;
+            const res = await apiFetch('heartbeat', {
+                is_viewing: document.visibilityState === 'visible' ? 1 : 0,
+            });
             if (isSessionNotFoundError(res)) {
                 resetToWelcomeScreen();
             }
         }
 
+        function markVisitorOffline() {
+            if (!sessionId || presenceMarkedOffline) return;
+            presenceMarkedOffline = true;
+
+            const body = JSON.stringify({
+                action: 'heartbeat',
+                session_id: sessionId,
+                is_leaving: 1,
+                is_viewing: 0,
+                is_typing: 0,
+            });
+            const blob = new Blob([body], { type: 'application/json' });
+
+            if (navigator.sendBeacon && navigator.sendBeacon(API, blob)) return;
+
+            fetch(API, {
+                method: 'POST',
+                keepalive: true,
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-Session-ID': sessionId,
+                    'X-Chat-Fingerprint': localStorage.getItem('wc_fp') || '',
+                },
+                body,
+            }).catch(() => {});
+        }
+
         async function pollMessages(isFirst = false) {
-            if (!sessionId || isPolling) return;
+            if (!sessionId || isPolling || document.visibilityState !== 'visible') return;
             isPolling = true;
 
             const res = await apiFetch('get_messages', { since: lastMsgId });
@@ -1614,6 +1910,12 @@
 
             if (res.messages && res.messages.length > 0) {
                 const newMessages = res.messages.filter(m => parseInt(m.id) > lastMsgId);
+
+                if (isFirst) {
+                    loadedMessages = res.messages.slice();
+                } else if (newMessages.length > 0) {
+                    loadedMessages = loadedMessages.concat(newMessages);
+                }
                 
                 if (newMessages.length > 0) {
                     const wasNearBottom = isNearBottom();
@@ -1635,6 +1937,8 @@
                     }
                 }
             }
+
+            if (!conversationSearchPanel.hidden) findConversationMatches(true);
 
             updateMessageStatuses(res.status_updates);
             
@@ -1776,12 +2080,33 @@
                         if (isEmojiOnly(msg.message)) extraClass = ' emoji-only';
                         content = formatMessage(msg.message);
                     }
-                    row.innerHTML = `<div class="message-stack"><div class="bubble${extraClass}">${messageReplyMarkup(msg)}${content}${messageStatusMarkup(msg)}</div><button class="reply-message-btn" type="button" aria-label="Reply to message">↩ Reply</button></div>`;
+                    const deleteAction = msg.sender === 'visitor'
+                        ? '<button class="delete-message" type="button"><span aria-hidden="true">⌫</span><span>Delete</span></button>'
+                        : '';
+                    row.innerHTML = `<div class="message-stack"><div class="bubble${extraClass}">${messageReplyMarkup(msg)}${content}${messageStatusMarkup(msg)}</div><div class="message-actions"><button class="reply-message-btn" type="button" title="Message actions" aria-label="Message actions" aria-expanded="false"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8"></circle><circle cx="12" cy="12" r="1.8"></circle><circle cx="19" cy="12" r="1.8"></circle></svg></button><div class="message-menu" hidden><button class="message-reply-action" type="button"><span aria-hidden="true">↩</span><span>Reply</span></button>${deleteAction}</div></div></div>`;
 
-                    row.querySelector('.reply-message-btn').addEventListener('click', (event) => {
+                    const messageToggle = row.querySelector('.reply-message-btn');
+                    const messageMenu = row.querySelector('.message-menu');
+                    messageToggle.addEventListener('click', (event) => {
                         event.stopPropagation();
+                        const open = messageMenu.hidden;
+                        closeVisitorMessageMenus();
+                        messageMenu.hidden = !open;
+                        messageToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+                    });
+                    row.querySelector('.message-reply-action').addEventListener('click', (event) => {
+                        event.stopPropagation();
+                        closeVisitorMessageMenus();
                         setReplyingTo(msg);
                     });
+                    const deleteButton = row.querySelector('.delete-message');
+                    if (deleteButton) {
+                        deleteButton.addEventListener('click', (event) => {
+                            event.stopPropagation();
+                            closeVisitorMessageMenus();
+                            deleteVisitorMessage(msg, row);
+                        });
+                    }
 
                     // Tap bubble to show/hide time
                     row.addEventListener('click', () => {
@@ -1893,6 +2218,27 @@
             });
         }
 
+        conversationSearchToggle.addEventListener('click', openConversationSearch);
+        conversationSearchInput.addEventListener('input', () => findConversationMatches());
+        conversationSearchInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                moveConversationSearchMatch(event.shiftKey ? -1 : 1);
+            }
+            if (event.key === 'Escape') closeConversationSearch();
+        });
+        conversationSearchPrevious.addEventListener('click', () => moveConversationSearchMatch(-1));
+        conversationSearchNext.addEventListener('click', () => moveConversationSearchMatch(1));
+        conversationSearchClose.addEventListener('click', closeConversationSearch);
+
+        document.addEventListener('visibilitychange', () => {
+            presenceMarkedOffline = false;
+            sendHeartbeat();
+            if (document.visibilityState === 'visible') pollMessages();
+        });
+        window.addEventListener('pagehide', markVisitorOffline);
+        window.addEventListener('beforeunload', markVisitorOffline);
+
         userDetailsToggle.addEventListener('click', () => {
             setUserDetailsOpen(!userDetailsLayer.classList.contains('is-open'));
         });
@@ -1903,9 +2249,11 @@
                 setUserDetailsOpen(false);
             }
         });
+        document.addEventListener('click', closeVisitorMessageMenus);
 
         document.getElementById('chat-logout-form').addEventListener('submit', () => {
-            ['wc_session_id', 'wc_visitor_email', 'wc_visitor_name', 'wc_fp'].forEach(key => {
+            markVisitorOffline();
+            ['wc_session_id', 'wc_chat_code', 'wc_visitor_email', 'wc_visitor_name', 'wc_fp'].forEach(key => {
                 localStorage.removeItem(key);
             });
         });

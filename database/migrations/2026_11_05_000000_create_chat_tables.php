@@ -47,6 +47,8 @@ return new class extends Migration
                 $table->bigIncrements('id');
                 $table->string('session_id', 64)->index();
                 $table->string('sender', 20)->default('visitor');
+                $table->unsignedBigInteger('user_id')->nullable()->index();
+                $table->string('user_name', 100)->nullable();
                 $table->text('message')->nullable();
                 $table->string('message_type', 20)->default('text');
                 $table->string('file_path')->nullable();

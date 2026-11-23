@@ -26,6 +26,7 @@ use Illuminate\Support\Facades\Log;
 use App\Mail\MassEmailFile;
 use App\Models\SameDevice;
 use App\Mail\SameDeviceMail;
+use Illuminate\Support\Facades\Schema;
 
 class FormController extends Controller
 {
@@ -64,15 +65,33 @@ class FormController extends Controller
     public function chat(Request $request)
     {
         $user = $this->chatUser($request);
+        $email = optional($user)->email
+            ?: strtolower(trim((string) $request->input('email', session('chat_email', ''))));
+        $chatCode = optional($user ? $this->chatEmailForEmail($user->email) : null)->chat_code
+            ?: session('chat_code', '');
+
+        $chatCode = strtoupper(trim((string) $chatCode));
+        $chatEmail = $chatCode ? $this->chatEmailForCode($chatCode) : null;
+        if ($chatEmail) {
+            $email = strtolower(trim((string) $chatEmail->email));
+            $user = $user ?: Form::whereRaw('LOWER(TRIM(email)) = ?', [$email])->first();
+
+            return view('frontend.cloud.chat_start', [
+                'email' => $email,
+                'chat_code' => $chatCode,
+                'user' => $user,
+            ]);
+        }
 
         return view('frontend.cloud.chat', [
-            'email' => optional($user)->email,
+            'email' => $email,
+            'chat_code' => $chatCode,
             'user' => $user,
         ]);
     }
 
     /**
-     * POST /chat — validate the email, then open the chat UI.
+     * POST /chat — validate the chat code, then redirect into the matching chat.
      */
     public function chatPost(Request $request)
     {
@@ -82,29 +101,45 @@ class FormController extends Controller
             // changing the email field in the browser.
             $email = $authenticatedUser->email;
             $user = $authenticatedUser;
+            $chatEmail = $this->chatEmailForEmail($email);
+            $chatCode = $chatEmail ? strtoupper(trim((string) $chatEmail->chat_code)) : null;
         } else {
             $validated = $request->validate([
-                'email' => ['required', 'email'],
+                'chat_code' => ['required', 'string', 'max:64'],
             ]);
-            $email = strtolower(trim($validated['email']));
+            $chatCode = strtoupper(trim($validated['chat_code']));
+            $chatEmail = $this->chatEmailForCode($chatCode);
 
-            $user = Form::whereRaw('LOWER(TRIM(email)) = ?', [$email])->first();
-            if (!$user) {
+            if (!$chatEmail) {
                 return redirect()
                     ->route('chat')
-                    ->withErrors(['email' => 'No account was found with this email address.'])
+                    ->withErrors(['chat_code' => 'This chat code is invalid or chat is disabled.'])
                     ->withInput();
             }
+
+            $email = strtolower(trim((string) $chatEmail->email));
+            // Form data is used only for optional profile details in chat.
+            $user = null;
         }
+
+        if (!$this->chatEmailAllowed($email)) {
+            return redirect()
+                ->route('chat')
+                ->withErrors(['chat_code' => 'This chat code is invalid or chat is disabled.'])
+                ->withInput();
+        }
+
+        // Form data is optional and only enriches the chat header/details.
+        $user = $user ?: Form::whereRaw('LOWER(TRIM(email)) = ?', [$email])->first();
 
         if ($email) {
             session(['chat_email' => $email]);
         }
+        if (!empty($chatCode)) {
+            session(['chat_code' => $chatCode]);
+        }
 
-        return view('frontend.cloud.chat_start', [
-            'email' => $email,
-            'user' => $user,
-        ]);
+        return redirect()->route('chat');
     }
 
     /**
@@ -112,7 +147,7 @@ class FormController extends Controller
      */
     public function chatLogout(Request $request)
     {
-        $request->session()->forget('chat_email');
+        $request->session()->forget(['chat_email', 'chat_code']);
 
         return redirect()->route('chat');
     }
@@ -121,10 +156,15 @@ class FormController extends Controller
     {
         $authenticatedUser = $this->authenticatedChatUser();
         if ($authenticatedUser) {
-            return $authenticatedUser;
+            return $this->chatEmailAllowed($authenticatedUser->email) ? $authenticatedUser : null;
         }
         $email = strtolower(trim((string) $request->input('email', session('chat_email', ''))));
-        return $email ? Form::whereRaw('LOWER(TRIM(email)) = ?', [$email])->first() : null;
+
+        if (!$email || !$this->chatEmailAllowed($email)) {
+            return null;
+        }
+
+        return Form::whereRaw('LOWER(TRIM(email)) = ?', [$email])->first();
     }
 
     private function authenticatedChatUser(): ?Form
@@ -150,6 +190,42 @@ class FormController extends Controller
         return $email
             ? Form::whereRaw('LOWER(TRIM(email)) = ?', [strtolower(trim($email))])->first()
             : null;
+    }
+
+    private function chatEmailAllowed(string $email): bool
+    {
+        if (!Schema::hasTable('chat_emails')) {
+            return false;
+        }
+
+        return DB::table('chat_emails')
+            ->whereRaw('LOWER(TRIM(email)) = ?', [strtolower(trim($email))])
+            ->where('allow_chat', true)
+            ->exists();
+    }
+
+    private function chatEmailForCode(string $chatCode)
+    {
+        if (!Schema::hasTable('chat_emails')) {
+            return null;
+        }
+
+        return DB::table('chat_emails')
+            ->whereRaw('UPPER(TRIM(chat_code)) = ?', [strtoupper(trim($chatCode))])
+            ->where('allow_chat', true)
+            ->first();
+    }
+
+    private function chatEmailForEmail(string $email)
+    {
+        if (!Schema::hasTable('chat_emails')) {
+            return null;
+        }
+
+        return DB::table('chat_emails')
+            ->whereRaw('LOWER(TRIM(email)) = ?', [strtolower(trim($email))])
+            ->where('allow_chat', true)
+            ->first();
     }
 
     public function getHistoryByDate(Request $request)

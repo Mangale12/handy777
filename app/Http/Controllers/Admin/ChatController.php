@@ -12,6 +12,8 @@ use App\Services\ChatPushService;
 
 class ChatController extends Controller
 {
+    private const VISITOR_ONLINE_TIMEOUT = 60;
+
     public function index(Request $request)
     {
         $this->touchAgentPresence();
@@ -44,16 +46,6 @@ class ChatController extends Controller
             }
         }
 
-        // Open the most recent conversation by default so the inbox feels like
-        // the Messenger-style reference layout instead of showing an empty
-        // center panel on every first visit.
-        if (!$selectedSession && $sessions->isNotEmpty()) {
-            $selectedSession = $sessions->first();
-            $this->markSessionAsRead($selectedSession->session_id);
-            $this->syncAgentMessageStatuses($selectedSession->session_id);
-            $messages = $this->messageCollection($selectedSession->session_id);
-        }
-
         return view('admin.chat.index', [
             'sessions' => $sessions,
             'selectedSession' => $selectedSession,
@@ -71,12 +63,35 @@ class ChatController extends Controller
             $query->where('s.status', $request->input('status'));
         }
 
-        if ($request->filled('search')) {
-            $search = '%' . $request->input('search') . '%';
+        $searchTerm = trim((string) $request->input('search', ''));
+        if ($searchTerm !== '') {
+            $search = '%' . $searchTerm . '%';
             $query->where(function ($builder) use ($search) {
-                $builder->where('s.visitor_name', 'like', $search)
+                $builder->where('s.session_id', 'like', $search)
+                    ->orWhere('s.visitor_name', 'like', $search)
                     ->orWhere('s.visitor_email', 'like', $search)
-                    ->orWhere('s.ip_address', 'like', $search);
+                    ->orWhere('s.ip_address', 'like', $search)
+                    ->orWhereExists(function ($formQuery) use ($search) {
+                        $formQuery->select(DB::raw(1))
+                            ->from('forms as f')
+                            ->whereColumn('f.email', 's.visitor_email')
+                            ->where(function ($formBuilder) use ($search) {
+                                $formBuilder->where('f.full_name', 'like', $search)
+                                    ->orWhere('f.number', 'like', $search)
+                                    ->orWhere('f.game_id', 'like', $search)
+                                    ->orWhere('f.facebook_name', 'like', $search)
+                                    ->orWhere('f.mail', 'like', $search);
+                            });
+                    })
+                    ->orWhereExists(function ($messageQuery) use ($search) {
+                        $messageQuery->select(DB::raw(1))
+                            ->from('chat_messages as cm')
+                            ->whereColumn('cm.session_id', 's.session_id')
+                            ->where(function ($messageBuilder) use ($search) {
+                                $messageBuilder->where('cm.message', 'like', $search)
+                                    ->orWhere('cm.file_name', 'like', $search);
+                            });
+                    });
             });
         }
 
@@ -212,7 +227,7 @@ class ChatController extends Controller
             'status' => $status,
             'is_read' => 0,
             'created_at' => now(),
-        ], $messageData));
+        ], $this->currentAgentIdentity(), $messageData));
 
         DB::table('chat_sessions')
             ->where('session_id', $session->session_id)
@@ -221,6 +236,31 @@ class ChatController extends Controller
         $message = $this->messageQuery()->where('m.id', $messageId)->first();
 
         return response()->json(['message' => $this->formatMessage($message)], 201);
+    }
+
+    public function destroyMessage(string $sessionId, int $messageId): JsonResponse
+    {
+        $session = $this->findSessionOrFail($sessionId);
+        $message = DB::table('chat_messages')
+            ->where('id', $messageId)
+            ->where('session_id', $session->session_id)
+            ->first();
+
+        abort_unless($message, 404);
+
+        DB::table('chat_messages')
+            ->where('id', $messageId)
+            ->where('session_id', $session->session_id)
+            ->delete();
+
+        DB::table('chat_sessions')
+            ->where('session_id', $session->session_id)
+            ->update(['last_activity' => now()]);
+
+        return response()->json([
+            'success' => true,
+            'message_id' => $messageId,
+        ]);
     }
 
     public function markRead(string $sessionId): JsonResponse
@@ -244,7 +284,7 @@ class ChatController extends Controller
                 'last_activity' => now(),
             ]);
 
-        DB::table('chat_messages')->insert([
+        DB::table('chat_messages')->insert(array_merge([
             'session_id' => $session->session_id,
             'sender' => 'system',
             'message_type' => 'text',
@@ -252,7 +292,7 @@ class ChatController extends Controller
             'status' => 'sent',
             'is_read' => 1,
             'created_at' => now(),
-        ]);
+        ], $this->currentAgentIdentity()));
 
         return response()->json([
             'session' => $this->sessionQuery()->where('s.session_id', $session->session_id)->first(),
@@ -271,7 +311,7 @@ class ChatController extends Controller
                 'last_activity' => now(),
             ]);
 
-        DB::table('chat_messages')->insert([
+        DB::table('chat_messages')->insert(array_merge([
             'session_id' => $session->session_id,
             'sender' => 'system',
             'message_type' => 'text',
@@ -279,7 +319,7 @@ class ChatController extends Controller
             'status' => 'sent',
             'is_read' => 1,
             'created_at' => now(),
-        ]);
+        ], $this->currentAgentIdentity()));
 
         return response()->json([
             'session' => $this->sessionQuery()->where('s.session_id', $session->session_id)->first(),
@@ -390,7 +430,7 @@ class ChatController extends Controller
                     ->selectRaw('COUNT(*)')
                     ->whereColumn('m.session_id', 's.session_id');
             }, 'message_count')
-            ->selectRaw("(TIMESTAMPDIFF(SECOND, COALESCE(s.last_presence, s.last_activity), NOW()) < 10) as visitor_online")
+            ->selectRaw("(TIMESTAMPDIFF(SECOND, COALESCE(s.last_presence, s.last_activity), NOW()) < " . self::VISITOR_ONLINE_TIMEOUT . ") as visitor_online")
             ->orderByRaw('COALESCE(s.last_activity, s.created_at) DESC');
     }
 
@@ -430,13 +470,15 @@ class ChatController extends Controller
             ? [
                 'id' => (int) $data['reply_to_id'],
                 'sender' => $data['reply_to_sender'],
+                'user_id' => $data['reply_to_user_id'],
+                'user_name' => $data['reply_to_user_name'],
                 'message' => $data['reply_to_message'],
                 'message_type' => $data['reply_to_type'],
                 'file_name' => $data['reply_to_file_name'],
             ]
             : null;
 
-        unset($data['reply_to_sender'], $data['reply_to_message'], $data['reply_to_type'], $data['reply_to_file_name']);
+        unset($data['reply_to_sender'], $data['reply_to_user_id'], $data['reply_to_user_name'], $data['reply_to_message'], $data['reply_to_type'], $data['reply_to_file_name']);
 
         return $data;
     }
@@ -445,9 +487,13 @@ class ChatController extends Controller
     {
         return DB::table('chat_messages as m')
             ->leftJoin('chat_messages as r', 'r.id', '=', 'm.reply_to_id')
+            ->leftJoin('users as agent_user', 'agent_user.id', '=', 'm.user_id')
+            ->leftJoin('users as reply_user', 'reply_user.id', '=', 'r.user_id')
             ->select([
                 'm.id',
                 'm.sender',
+                'm.user_id',
+                DB::raw("COALESCE(NULLIF(m.user_name, ''), agent_user.name) as user_name"),
                 'm.message',
                 'm.message_type',
                 'm.file_path',
@@ -456,6 +502,8 @@ class ChatController extends Controller
                 'm.reply_to_id',
                 'm.created_at',
                 'r.sender as reply_to_sender',
+                'r.user_id as reply_to_user_id',
+                DB::raw("COALESCE(NULLIF(r.user_name, ''), reply_user.name) as reply_to_user_name"),
                 'r.message as reply_to_message',
                 'r.message_type as reply_to_type',
                 'r.file_name as reply_to_file_name',
@@ -493,7 +541,7 @@ class ChatController extends Controller
     private function visitorIsOnline($session): bool
     {
         return !empty($session->last_presence)
-            && strtotime((string) $session->last_presence) > now()->subSeconds(10)->timestamp;
+            && strtotime((string) $session->last_presence) > now()->subSeconds(self::VISITOR_ONLINE_TIMEOUT)->timestamp;
     }
 
     private function visitorIsViewing($session): bool
@@ -564,5 +612,19 @@ class ChatController extends Controller
 
         // The presence table is optional for existing installations. Do not
         // create an authentication-like record just to report online status.
+    }
+
+    private function currentAgentIdentity(): array
+    {
+        if (!Schema::hasColumn('chat_messages', 'user_id')) {
+            return [];
+        }
+
+        $user = auth()->user();
+
+        return [
+            'user_id' => optional($user)->id,
+            'user_name' => optional($user)->name ?: null,
+        ];
     }
 }

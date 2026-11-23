@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Form;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Schema;
@@ -15,6 +16,7 @@ class ChatController extends Controller
 {
     private const RATE_LIMIT = 30;
     private const RATE_DECAY = 60;
+    private const INACTIVITY_GREETING_HOURS = 2;
 
     /**
      * The public chat endpoint. The legacy PHP switchboard used the same
@@ -28,6 +30,8 @@ class ChatController extends Controller
                 return $this->startSession($request);
             case 'send_message':
                 return $this->sendMessage($request);
+            case 'delete_message':
+                return $this->deleteMessage($request);
             case 'get_messages':
                 return $this->getMessages($request);
             case 'heartbeat':
@@ -50,20 +54,25 @@ class ChatController extends Controller
     private function startSession(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'email' => ['required', 'email', 'max:150'],
+            'chat_code' => ['required', 'string', 'max:64'],
             'fp' => ['required', 'string', 'max:128'],
         ]);
 
-        $email = Str::lower(trim($data['email']));
-        $form = $this->formForEmail($email);
+        $chatCode = Str::upper(trim($data['chat_code']));
+        $chatEmail = $this->chatEmailForCode($chatCode);
 
-        if (!$form) {
+        if (!$chatEmail) {
             return response()->json([
-                'error' => 'No account was found with this email address.',
+                'error' => 'This chat code is invalid or chat is disabled.',
             ], 422);
         }
 
-        $name = trim((string) ($form->full_name ?: $email));
+        $email = Str::lower(trim($chatEmail->email));
+        // The chat_emails table controls access. A matching form is optional
+        // and is used only to enrich the visitor profile in the chat UI.
+        $form = $this->formForEmail($email);
+
+        $name = trim((string) ($form->full_name ?? $chatEmail->display_name ?? $email));
         $session = DB::table('chat_sessions')
             ->where('status', 'open')
             ->where(function ($query) use ($email, $data) {
@@ -87,11 +96,12 @@ class ChatController extends Controller
                     'last_presence' => now(),
                     'last_activity' => now(),
                 ]);
+            $this->touchChatEmail($email);
 
             return response()->json([
                 'session_id' => $session->session_id,
                 'new' => false,
-                'user' => $this->formPayload($form),
+                'user' => $form ? $this->formPayload($form) : ['full_name' => $name, 'email' => $email],
             ]);
         }
 
@@ -111,11 +121,12 @@ class ChatController extends Controller
             'last_presence' => now(),
             'created_at' => now(),
         ]);
+        $this->touchChatEmail($email);
 
         return response()->json([
             'session_id' => $sessionId,
             'new' => true,
-            'user' => $this->formPayload($form),
+            'user' => $form ? $this->formPayload($form) : ['full_name' => $name, 'email' => $email],
         ]);
     }
 
@@ -226,6 +237,10 @@ class ChatController extends Controller
                 'is_read' => 0,
             ]);
 
+        // Send the inactivity greeting only after the visitor has sent a real
+        // message, never merely because the chat screen was opened.
+        $this->sendInactivityGreeting($session, $messageId);
+
         $storedMessage = $this->messageQuery()->where('m.id', $messageId)->first();
         $pushSessionId = $session->session_id;
         $pushVisitorName = (string) ($session->visitor_name ?: $session->visitor_email ?: 'Visitor');
@@ -328,6 +343,91 @@ class ChatController extends Controller
         ]);
     }
 
+    private function deleteMessage(Request $request): JsonResponse
+    {
+        $session = $this->visitorSession($request);
+        $messageId = max(0, (int) $request->input('message_id', 0));
+        $message = DB::table('chat_messages')
+            ->where('id', $messageId)
+            ->where('session_id', $session->session_id)
+            ->where('sender', 'visitor')
+            ->first();
+
+        if (!$message) {
+            return response()->json(['error' => 'Only your messages can be deleted.'], 404);
+        }
+
+        DB::table('chat_messages')
+            ->where('id', $messageId)
+            ->where('session_id', $session->session_id)
+            ->where('sender', 'visitor')
+            ->delete();
+
+        DB::table('chat_sessions')
+            ->where('session_id', $session->session_id)
+            ->update(['last_activity' => now()]);
+
+        return response()->json([
+            'success' => true,
+            'message_id' => $messageId,
+        ]);
+    }
+
+    private function sendInactivityGreeting($session, int $triggerMessageId): void
+    {
+        if ($session->status !== 'open'
+            || (bool) $session->is_blocked
+            || !$this->chatEmailAllowed((string) $session->visitor_email)) {
+            return;
+        }
+
+        DB::transaction(function () use ($session, $triggerMessageId): void {
+            $lockedSession = DB::table('chat_sessions')
+                ->where('session_id', $session->session_id)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$lockedSession
+                || $lockedSession->status !== 'open'
+                || (bool) $lockedSession->is_blocked
+                || !$this->chatEmailAllowed((string) $lockedSession->visitor_email)) {
+                return;
+            }
+
+            $lastMessage = DB::table('chat_messages')
+                ->where('session_id', $lockedSession->session_id)
+                ->where('id', '<', $triggerMessageId)
+                ->orderByDesc('created_at')
+                ->orderByDesc('id')
+                ->first();
+
+            if ($lastMessage
+                && $lastMessage->sender === 'system'
+                && $lastMessage->message === 'How can I help you?') {
+                return;
+            }
+
+            if ($lastMessage
+                && Carbon::parse($lastMessage->created_at)->gt(now()->subHours(self::INACTIVITY_GREETING_HOURS))) {
+                return;
+            }
+
+            DB::table('chat_messages')->insert([
+                'session_id' => $lockedSession->session_id,
+                'sender' => 'system',
+                'message_type' => 'text',
+                'message' => 'How can I help you?',
+                'status' => 'sent',
+                'is_read' => 0,
+                'created_at' => now(),
+            ]);
+
+            DB::table('chat_sessions')
+                ->where('session_id', $lockedSession->session_id)
+                ->update(['last_activity' => now()]);
+        });
+    }
+
     private function heartbeat(Request $request): JsonResponse
     {
         $session = $this->visitorSession($request);
@@ -419,6 +519,41 @@ class ChatController extends Controller
             ->first();
     }
 
+    private function chatEmailForCode(string $chatCode)
+    {
+        if (!Schema::hasTable('chat_emails')) {
+            return null;
+        }
+
+        return DB::table('chat_emails')
+            ->whereRaw('UPPER(TRIM(chat_code)) = ?', [$chatCode])
+            ->where('allow_chat', true)
+            ->first();
+    }
+
+    private function chatEmailAllowed(string $email): bool
+    {
+        if (!$email || !Schema::hasTable('chat_emails')) {
+            return false;
+        }
+
+        return DB::table('chat_emails')
+            ->whereRaw('LOWER(TRIM(email)) = ?', [strtolower(trim($email))])
+            ->where('allow_chat', true)
+            ->exists();
+    }
+
+    private function touchChatEmail(string $email): void
+    {
+        if (!Schema::hasTable('chat_emails')) {
+            return;
+        }
+
+        DB::table('chat_emails')
+            ->whereRaw('LOWER(TRIM(email)) = ?', [$email])
+            ->update(['last_chat_at' => now(), 'updated_at' => now()]);
+    }
+
     private function formPayload(Form $form): array
     {
         return [
@@ -446,13 +581,15 @@ class ChatController extends Controller
             ? [
                 'id' => (int) $data['reply_to_id'],
                 'sender' => $data['reply_to_sender'],
+                'user_id' => null,
+                'user_name' => null,
                 'message' => $data['reply_to_message'],
                 'message_type' => $data['reply_to_type'],
                 'file_name' => $data['reply_to_file_name'],
             ]
             : null;
 
-        unset($data['reply_to_sender'], $data['reply_to_message'], $data['reply_to_type'], $data['reply_to_file_name']);
+        unset($data['user_id'], $data['user_name'], $data['reply_to_sender'], $data['reply_to_user_id'], $data['reply_to_user_name'], $data['reply_to_message'], $data['reply_to_type'], $data['reply_to_file_name']);
 
         return $data;
     }
