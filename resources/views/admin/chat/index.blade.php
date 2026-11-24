@@ -187,7 +187,8 @@
         }
         .search-box input::placeholder { color: #647086; }
         .search-box input:focus { box-shadow: 0 0 0 2px #bfdbfe; }
-        .search-submit { height: 42px; padding: 0 13px; border: 1px solid #cbd5e1; border-radius: 9px; color: #334155; background: #fff; font-size: 12px; font-weight: 700; }
+        .search-submit { display: inline-flex; height: 42px; align-items: center; justify-content: center; gap: 6px; padding: 0 13px; border: 1px solid #cbd5e1; border-radius: 9px; color: #334155; background: #fff; font-size: 12px; font-weight: 700; }
+        .search-submit svg { width: 17px; height: 17px; flex: 0 0 auto; }
         .search-submit:hover { border-color: #93c5fd; color: var(--blue); background: var(--blue-soft); }
 
         .conversation-list {
@@ -276,6 +277,7 @@
         .chat-empty p { margin: 0; font-size: 14px; }
         .chat-panel { display: flex; min-height: 0; height: 100%; flex-direction: column; }
         .chat-head { display: flex; min-height: 84px; align-items: center; gap: 13px; padding: 14px 23px; border-bottom: 1px solid var(--line); }
+        .mobile-back-button { display: none; }
         .chat-head .avatar { width: 50px; height: 50px; font-size: 16px; }
         .chat-title { min-width: 0; }
         .chat-name { overflow: hidden; margin: 0; color: #101828; font-size: 22px; line-height: 1.1; text-overflow: ellipsis; white-space: nowrap; }
@@ -288,7 +290,7 @@
         .header-button.danger { border-color: #fee2e2; color: #b42318; background: #fff7f7; }
         .header-button.danger:hover { border-color: #fecaca; background: #fff1f0; }
         .header-button:disabled { cursor: not-allowed; opacity: .5; }
-        .header-button svg { width: 14px; height: 14px; }
+        .header-button svg { width: 14px; height: 14px; flex: 0 0 auto; }
         .chat-action {
             display: grid;
             width: 40px;
@@ -368,7 +370,7 @@
             45% { box-shadow: 0 0 0 4px rgba(240,68,157,.3), 0 8px 22px rgba(36,107,254,.2); }
         }
 
-        .composer { display: flex; align-items: center; gap: 10px; padding: 14px 22px 18px; border-top: 1px solid var(--line); }
+        .composer { display: flex; align-items: center; gap: 10px; padding: 14px 22px calc(18px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); }
         .composer-plus, .send {
             display: grid;
             width: 42px;
@@ -485,33 +487,49 @@
             .top-actions { padding-right: 13px; }
             .top-actions .top-action:not(.active), .profile-link { display: none; }
             .main-nav { gap: 10px; }
+            .header-button { width: 38px; padding: 0; justify-content: center; }
+            .header-button span { display: none; }
         }
 
         @media (max-width: 680px) {
-            body { overflow: auto; }
-            .messenger { min-height: 100vh; height: auto; grid-template-rows: 70px minmax(0, 1fr); }
+            body { overflow: hidden; }
+            .messenger { min-height: 100svh; height: 100dvh; grid-template-rows: 70px minmax(0, 1fr); }
             .topbar, .workspace, .workspace.details-open { grid-template-columns: 1fr; }
             .brand-area { padding: 0 20px; }
             .brand { width: 42px; height: 42px; font-size: 30px; }
             .main-nav { display: none; }
-            .top-actions { position: absolute; top: 0; right: 10px; height: 70px; }
+            .top-actions { position: absolute; top: 0; right: 8px; height: 70px; gap: 4px; padding: 0; }
             .top-actions .top-action { width: 42px; height: 42px; }
-            .sidebar { min-height: calc(100vh - 70px); border-right: 0; }
-            .chat-column { position: fixed; z-index: 10; inset: 70px 0 0; display: none; border: 0; }
+            .top-actions .top-action:not(.active) { display: grid; }
+            .profile-link { display: block; }
+            .profile-avatar { width: 42px; height: 42px; font-size: 16px; }
+            .sidebar { min-height: calc(100dvh - 70px); border-right: 0; }
+            .chat-column { position: fixed; z-index: 10; inset: 70px 0 0; display: none; height: auto; border: 0; }
             .chat-column.open { display: flex; }
             .details { top: 70px; width: min(360px, 100vw); }
-            .chat-head { padding: 12px 15px; }
-            .chat-head::before { margin-right: 0; color: var(--blue); content: "‹"; cursor: pointer; font-size: 30px; line-height: 1; }
-            .chat-name { font-size: 19px; }
-            .chat-meta { font-size: 13px; }
-            .chat-actions { gap: 0; }
-            .chat-actions .header-button { display: none; }
+            .chat-head { min-height: 64px; gap: 7px; padding: 10px 11px; }
+            .mobile-back-button { display: grid; width: 30px; height: 36px; flex: 0 0 30px; place-items: center; padding: 0; border: 0; color: var(--blue); background: transparent; }
+            .mobile-back-button svg { width: 24px; height: 24px; }
+            .chat-head .avatar { width: 40px; height: 40px; font-size: 14px; }
+            .chat-title { flex: 1; }
+            .chat-name { font-size: 16px; }
+            .chat-meta { gap: 5px; margin-top: 4px; font-size: 11px; }
+            .chat-actions { flex: 0 0 auto; gap: 1px; }
+            .chat-actions .header-button, .chat-actions .chat-action { width: 32px; height: 34px; padding: 0; justify-content: center; }
+            .chat-actions .header-button svg, .chat-actions .chat-action svg { width: 18px; height: 18px; }
+            .chat-actions .header-button.danger { display: none; }
+            .chat-actions .header-button span { display: none; }
+            .search-row { gap: 6px; }
+            .search-submit { width: 42px; padding: 0; font-size: 0; }
+            .search-submit svg { width: 18px; height: 18px; }
             .messages { padding: 18px 13px 24px; }
             .message-content { max-width: 83%; }
             .message-bubble { font-size: 16px; }
-            .composer { padding: 10px 12px 14px; }
+            .composer { padding: 10px 12px calc(14px + env(safe-area-inset-bottom)); }
             .composer-tools { display: none; }
             .sidebar-heading h1 { font-size: 29px; }
+            .message-search { gap: 5px; padding: 8px 11px; }
+            .message-search-status { min-width: 42px; }
         }
 
         /* Keep conversation details in a right-side drawer. The details panel
@@ -607,7 +625,7 @@
                         <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path stroke-linecap="round" d="m20 20-4-4"></path></svg>
                         <input id="search" type="search" placeholder="Search conversations..." autocomplete="off">
                     </div>
-                    <button id="search-button" class="search-submit" type="button">Search</button>
+                    <button id="search-button" class="search-submit" type="button" title="Search conversations" aria-label="Search conversations"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path stroke-linecap="round" d="m20 20-4-4"></path></svg><span>Search</span></button>
                 </div>
             </div>
             <div id="conversation-list" class="conversation-list" aria-live="polite"></div>
@@ -625,6 +643,7 @@
 
             <section id="chat-panel" class="chat-panel" hidden>
                 <header class="chat-head">
+                    <button id="mobile-back-button" class="mobile-back-button" type="button" title="Back to conversations" aria-label="Back to conversations"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m15 18-6-6 6-6"></path></svg></button>
                     <span id="chat-avatar" class="avatar"></span>
                     <div class="chat-title">
                         <h2 id="chat-name" class="chat-name"></h2>
@@ -633,9 +652,11 @@
                     <div class="chat-actions">
                         <button id="session-id-button" class="header-button" type="button" title="Copy session ID"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="8" y="8" width="11" height="11" rx="2"></rect><path stroke-linecap="round" d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path></svg><span>Session ID</span></button>
                         <button id="header-search-button" class="header-button" type="button" title="Search in conversation"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><circle cx="10.5" cy="10.5" r="6.5"></circle><path stroke-linecap="round" d="m16 16 4.5 4.5"></path></svg><span>Search</span></button>
-                        <button id="destroy-button" class="header-button danger" type="button">Destroy</button>
-                        <button id="block-button" class="header-button danger" type="button">Block Chat</button>
-                        <button id="close-button" class="header-button danger" type="button">Close Chat</button>
+                        <button id="call-button" class="header-button" type="button" title="Call visitor" aria-label="Call visitor"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M5.5 4.5 8 3l3 5-2.3 1.8a14.3 14.3 0 0 0 5.5 5.5L16 13l5 3-1.5 2.5a2.5 2.5 0 0 1-2.8 1.2A17.8 17.8 0 0 1 4.3 7.3 2.5 2.5 0 0 1 5.5 4.5Z"></path></svg><span>Call</span></button>
+                        <button id="video-button" class="header-button" type="button" title="Start video call" aria-label="Start video call"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="6" width="12" height="12" rx="2"></rect><path stroke-linecap="round" stroke-linejoin="round" d="m15.5 10 5-3v10l-5-3"></path></svg><span>Video</span></button>
+                        <button id="destroy-button" class="header-button danger" type="button" title="Destroy chat" aria-label="Destroy chat"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M5 7h14M9 7V4h6v3m-8 0 1 13h8l1-13M10 11v5M14 11v5"></path></svg><span>Destroy</span></button>
+                        <button id="block-button" class="header-button danger" type="button" title="Block chat" aria-label="Block chat"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"></circle><path stroke-linecap="round" d="m5.7 5.7 12.6 12.6"></path></svg><span>Block Chat</span></button>
+                        <button id="close-button" class="header-button danger" type="button" title="Close chat" aria-label="Close chat"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" d="M5 12h14M13 6l6 6-6 6"></path></svg><span>Close Chat</span></button>
                         <button id="details-toggle" class="chat-action" type="button" title="Show conversation details" aria-label="Show conversation details" aria-expanded="false"><svg width="23" height="23" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"></circle><path stroke-linecap="round" d="M12 10.5v5M12 7.5h.01"></path></svg></button>
                     </div>
                 </header>
@@ -798,6 +819,9 @@
     const messageSearchClose = document.getElementById('message-search-close');
     const notificationButton = document.getElementById('notification-button');
     const headerSearchButton = document.getElementById('header-search-button');
+    const mobileBackButton = document.getElementById('mobile-back-button');
+    const callButton = document.getElementById('call-button');
+    const videoButton = document.getElementById('video-button');
 
     const notificationState = {
         audioContext: null,
@@ -1321,6 +1345,7 @@
         const online = visitorIsOnline(session);
         const avatar = document.getElementById('chat-avatar');
         const displayName = session.form_full_name || session.visitor_name || 'Visitor';
+        const phoneNumber = String(session.form_number || '').trim();
         avatar.className = `avatar ${avatarTone(displayName)}`;
         avatar.textContent = initials(displayName);
         document.getElementById('chat-name').textContent = displayName;
@@ -1329,9 +1354,13 @@
         document.getElementById('summary-messages').textContent = session.message_count ?? state.messages.length;
         document.getElementById('summary-ip').textContent = session.ip_address || 'Not recorded';
         document.getElementById('summary-started').textContent = session.created_at ? dateOnly(session.created_at) : '—';
-        blockButton.textContent = Number(session.is_blocked) ? 'Unblock Chat' : 'Block Chat';
+        const blockButtonLabel = blockButton.querySelector('span');
+        if (blockButtonLabel) blockButtonLabel.textContent = Number(session.is_blocked) ? 'Unblock Chat' : 'Block Chat';
         detailBlockLabel.textContent = Number(session.is_blocked) ? 'Unblock' : 'Block';
-        closeButton.textContent = session.status === 'closed' ? 'Reopen Chat' : 'Close Chat';
+        const closeButtonLabel = closeButton.querySelector('span');
+        if (closeButtonLabel) closeButtonLabel.textContent = session.status === 'closed' ? 'Reopen Chat' : 'Close Chat';
+        callButton.title = phoneNumber ? `Call ${displayName}` : 'No phone number available';
+        callButton.setAttribute('aria-label', callButton.title);
         updateComposerState(session);
 
         const profileAvatar = document.getElementById('profile-avatar');
@@ -1697,6 +1726,20 @@
         history.replaceState({}, '', urls.index);
     }
 
+    function callVisitor() {
+        const session = sessionFor();
+        const phoneNumber = String(session?.form_number || '').replace(/[^\d+]/g, '');
+        if (!phoneNumber) {
+            setError('No phone number is available for this visitor.');
+            return;
+        }
+        window.location.href = `tel:${phoneNumber}`;
+    }
+
+    function startVideoCall() {
+        setError('Video calling is not configured for this conversation.');
+    }
+
     async function destroyActiveChat() {
         if (!state.activeId || !window.confirm('Destroy this chat permanently?')) return;
         const id = state.activeId;
@@ -1769,7 +1812,10 @@
     }));
     detailsToggle.addEventListener('click', () => setDetailsOpen(!state.detailsOpen));
     detailsClose.addEventListener('click', () => setDetailsOpen(false));
+    mobileBackButton.addEventListener('click', () => chat.classList.remove('open'));
     headerSearchButton.addEventListener('click', openMessageSearch);
+    callButton.addEventListener('click', callVisitor);
+    videoButton.addEventListener('click', startVideoCall);
     detailSearchButton.addEventListener('click', openMessageSearch);
     messageSearchInput.addEventListener('input', findMessageMatches);
     messageSearchInput.addEventListener('keydown', event => {
