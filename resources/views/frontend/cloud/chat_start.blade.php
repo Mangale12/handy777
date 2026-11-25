@@ -1,6 +1,11 @@
 @php
-    $chatFullName = trim((string) ($user->full_name ?? ''));
-    $chatFacebookName = trim((string) ($user->facebook_name ?? ''));
+    // A chat email can be created from the admin panel before a matching
+    // record exists in the forms table, so the profile is optional here.
+    $chatFullName = trim((string) data_get($user, 'full_name', ''));
+    $chatEmail = trim((string) data_get($user, 'email', '')) ?: trim((string) ($email ?? ''));
+    $chatPhone = trim((string) data_get($user, 'number', ''));
+    $chatGameId = trim((string) data_get($user, 'game_id', ''));
+    $chatFacebookName = trim((string) data_get($user, 'facebook_name', ''));
     $chatSupportName = 'AB Gaming Support';
     $chatUserInitial = strtoupper(substr($chatFullName ?: 'U', 0, 1));
     $chatSupportPhone = trim((string) config('app.support_phone', ''));
@@ -1273,7 +1278,7 @@
                     <span class="user-details-avatar" aria-hidden="true">{{ $chatUserInitial }}</span>
                     <span>
                         <strong>{{ $chatFullName ?: 'Account holder' }}</strong>
-                        <small>{{ $user->email }}</small>
+                        <small>{{ $chatEmail }}</small>
                     </span>
                 </div>
 
@@ -1281,14 +1286,14 @@
                     @if ($chatFullName)
                         <div><dt>Full name</dt><dd>{{ $chatFullName }}</dd></div>
                     @endif
-                    @if ($user->email)
-                        <div><dt>Email</dt><dd>{{ $user->email }}</dd></div>
+                    @if ($chatEmail)
+                        <div><dt>Email</dt><dd>{{ $chatEmail }}</dd></div>
                     @endif
-                    @if ($user->number)
-                        <div><dt>Phone</dt><dd>{{ $user->number }}</dd></div>
+                    @if ($chatPhone)
+                        <div><dt>Phone</dt><dd>{{ $chatPhone }}</dd></div>
                     @endif
-                    @if ($user->game_id)
-                        <div><dt>Game ID</dt><dd>{{ $user->game_id }}</dd></div>
+                    @if ($chatGameId)
+                        <div><dt>Game ID</dt><dd>{{ $chatGameId }}</dd></div>
                     @endif
                     @if ($chatFacebookName)
                         <div><dt>Facebook</dt><dd>{{ $chatFacebookName }}</dd></div>
@@ -1352,7 +1357,7 @@
         const API = @json(route('api.chat'));
         const submittedEmail = @json($email ?? '');
         const submittedChatCode = @json($chat_code ?? session('chat_code', ''));
-        const submittedName = @json($user->full_name ?? '');
+        const submittedName = @json($chatFullName);
         let sessionId = localStorage.getItem('wc_session_id') || null;
         let visitorEmail = submittedEmail || localStorage.getItem('wc_visitor_email') || null;
         let visitorChatCode = submittedChatCode || localStorage.getItem('wc_chat_code') || null;
